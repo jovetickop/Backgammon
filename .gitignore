@@ -1,0 +1,21 @@
+# 构建输出目录
+/build/
+/build-fast/
+
+# 本仓库下载的本地工具链
+/tools/
+
+# CMake/Ninja 生成文件（兜底）
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build.ninja
+.ninja_deps
+.ninja_log
+
+# Windows IDE 缓存与用户文件
+*.suo
+*.sdf
+*.VC.db
+*.VC.opendb
+*.user
