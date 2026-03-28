@@ -8,7 +8,7 @@
 
 ## 项目结构
 
-- `Backgammon/Backgammon/`：核心源码（UI、AI、胜负判断）
+- `src/`：核心源码（UI、AI、胜负判断）
 - `CMakeLists.txt`：CMake 构建入口（支持 Qt5/Qt6）
 - `build.bat`：一键编译脚本
 - `run.bat`：一键运行脚本
