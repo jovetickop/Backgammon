@@ -3,6 +3,7 @@
 #include<QMessageBox>
 #include<QMouseEvent>
 #include<QGraphicsView>
+#include<cmath>
 #include"ComputerMove.h"
 #include"judgeWinner.h"
 using namespace std;
@@ -92,32 +93,17 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 {
 	if(!m_bStarted)
 		return;
-	QPoint viewPos = event->pos();
-	if(event->pos().x()<100)
+
+	// 使用 graphicsView 的实际坐标映射，避免固定偏移导致落子错位。
+	QPoint viewPos = ui.graphicsView->mapFrom(this, event->pos());
+	if(!ui.graphicsView->rect().contains(viewPos))
 		return;
 
-	QPointF scenePos = ui.graphicsView->mapToScene(viewPos.x()-100, viewPos.y());
+	QPointF scenePos = ui.graphicsView->mapToScene(viewPos);
 
-	int nHx, nHy;
-
-	if(scenePos.x()<0)
-	{
-		
-		nHx = scenePos.x()/40-1;
-	}
-	else
-	{
-		nHx = scenePos.x()/40;
-	}
-	if(scenePos.y()<0)
-	{
-		
-		nHy = scenePos.y()/40-1;
-	}
-	else
-	{
-		nHy = scenePos.y()/40;
-	}
+	// 用 floor 统一处理正负坐标，避免边界点击时出现一格偏差。
+	int nHx = static_cast<int>(std::floor(scenePos.x()/40.0));
+	int nHy = static_cast<int>(std::floor(scenePos.y()/40.0));
 
 	int nHm,nHn;
 	nHm = nHx+8;
