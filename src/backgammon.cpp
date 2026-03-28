@@ -3,6 +3,7 @@
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QGraphicsView>
+#include <QGraphicsDropShadowEffect>
 #include <QPen>
 #include <cmath>
 #include "ComputerMove.h"
@@ -57,31 +58,31 @@ Backgammon::Backgammon(QWidget *parent)
 	// 界面风格：浅色背景 + 左侧磨砂面板 + 按钮状态反馈。
 	setStyleSheet(
 		"QMainWindow#BackgammonClass {"
-		"background: qradialgradient(cx:0.2, cy:0.15, radius:1.2, stop:0 rgba(255,255,255,210), stop:1 rgba(216,226,236,220));"
+		"background: qradialgradient(cx:0.2, cy:0.15, radius:1.25, stop:0 rgba(255,255,255,230), stop:1 rgba(203,217,230,230));"
 		"}"
 		"QWidget#left_widget {"
-		"background-color: rgba(255,255,255,125);"
-		"border: 1px solid rgba(255,255,255,180);"
-		"border-radius: 18px;"
+		"background-color: rgba(255,255,255,112);"
+		"border: 1px solid rgba(255,255,255,195);"
+		"border-radius: 20px;"
 		"}"
 		"QPushButton#startButton {"
-		"background-color: rgba(255,255,255,170);"
-		"border: 1px solid rgba(120,130,150,120);"
+		"background-color: rgba(255,255,255,182);"
+		"border: 1px solid rgba(120,130,150,110);"
 		"border-radius: 12px;"
 		"padding: 10px 14px;"
 		"font-size: 16px;"
 		"font-weight: 600;"
 		"}"
 		"QPushButton#startButton:hover {"
-		"background-color: rgba(255,255,255,220);"
+		"background-color: rgba(255,255,255,228);"
 		"}"
 		"QPushButton#startButton:pressed {"
-		"background-color: rgba(238,244,250,230);"
+		"background-color: rgba(236,242,249,236);"
 		"}"
 		"QGraphicsView#graphicsView {"
-		"background: rgba(255,255,255,85);"
-		"border: 1px solid rgba(255,255,255,160);"
-		"border-radius: 16px;"
+		"background: rgba(255,255,255,78);"
+		"border: 1px solid rgba(255,255,255,175);"
+		"border-radius: 18px;"
 		"}"
 	);
 
@@ -90,6 +91,19 @@ Backgammon::Backgammon(QWidget *parent)
 	ui.graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	ui.graphicsView->setRenderHint(QPainter::Antialiasing);
 	ui.graphicsView->setScene(m_pGraphicsScene);
+
+	// 用阴影增强“玻璃卡片”层次感。
+	QGraphicsDropShadowEffect *leftShadow = new QGraphicsDropShadowEffect(this);
+	leftShadow->setBlurRadius(34);
+	leftShadow->setOffset(0, 10);
+	leftShadow->setColor(QColor(74, 91, 116, 88));
+	ui.left_widget->setGraphicsEffect(leftShadow);
+
+	QGraphicsDropShadowEffect *boardShadow = new QGraphicsDropShadowEffect(this);
+	boardShadow->setBlurRadius(26);
+	boardShadow->setOffset(0, 8);
+	boardShadow->setColor(QColor(63, 82, 105, 76));
+	ui.graphicsView->setGraphicsEffect(boardShadow);
 
 	DrawBoard();
 
