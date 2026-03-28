@@ -1,24 +1,28 @@
-﻿#include "backgammon.h"
-#include <QGraphicsScene>
-#include <QGraphicsEllipseItem>
-#include <QMessageBox>
-#include <QMouseEvent>
-#include <QGraphicsView>
-#include <QGraphicsDropShadowEffect>
-#include <QResizeEvent>
-#include <QShowEvent>
-#include <QPen>
+#include "backgammon.h"
+
+#include <QComboBox>
+#include <QDateTime>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFrame>
+#include <QGraphicsDropShadowEffect>
+#include <QGraphicsEllipseItem>
+#include <QGraphicsScene>
+#include <QGraphicsView>
 #include <QLabel>
+#include <QMessageBox>
+#include <QMouseEvent>
+#include <QPen>
 #include <QPushButton>
+#include <QResizeEvent>
+#include <QShowEvent>
 #include <QVBoxLayout>
 #include <cmath>
+
 #include "ComputerMove.h"
 #include "Evaluation.h"
+#include "historydialog.h"
 #include "judgeWinner.h"
-#include "playerstatsstore.h"
 #include "resultdialog.h"
 #include "winratechart.h"
 
@@ -26,7 +30,6 @@ using namespace std;
 
 namespace
 {
-	// 棋盘与绘制参数统一放在此处，后续调尺寸只改这里。
 	const int kBoardSize = 15;
 	const int kBoardCenter = 7;
 	const int kGridSize = 52;
@@ -36,13 +39,11 @@ namespace
 	const int kLineMax = kBoardCenter * kGridSize;
 	const int kScenePadding = kGridSize;
 
-	// 棋盘数组下标 -> 场景坐标。
 	int BoardToScene(int index)
 	{
 		return (index - kBoardCenter) * kGridSize;
 	}
 
-	// 场景坐标 -> 棋盘数组下标（吸附到最近交叉点）。
 	int SceneToBoard(double pos)
 	{
 		return static_cast<int>(std::lround(pos / kGridSize)) + kBoardCenter;
@@ -64,12 +65,19 @@ namespace
 		return 50.0 + (boundedScore > 0.0 ? offset : -offset);
 	}
 
+	QString StarterText(bool playerStarts)
+	{
+		return playerStarts
+			? QString::fromUtf8(u8"\u6211\u5148\u624B\uFF08\u9ED1\u68CB\uFF09")
+			: QString::fromUtf8(u8"AI \u5148\u624B\uFF08\u767D\u68CB\uFF09");
+	}
+
 	void ShowAiLogicDialog(QWidget *parent, int searchDepth)
 	{
 		QDialog dialog(parent);
 		dialog.setModal(true);
 		dialog.setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-		dialog.setWindowTitle(QString::fromUtf8("AI 运行逻辑"));
+		dialog.setWindowTitle(QString::fromUtf8(u8"AI \u8FD0\u884C\u903B\u8F91"));
 		dialog.setFixedSize(620, 500);
 		dialog.setStyleSheet(
 			"QDialog {"
@@ -127,47 +135,47 @@ namespace
 		cardLayout->setContentsMargins(28, 28, 28, 24);
 		cardLayout->setSpacing(14);
 
-		QLabel *title = new QLabel(QString::fromUtf8("AI 决策说明"), card);
+		QLabel *title = new QLabel(QString::fromUtf8(u8"AI \u51B3\u7B56\u8BF4\u660E"), card);
 		title->setObjectName("title");
 		cardLayout->addWidget(title);
 
 		QLabel *subtitle = new QLabel(
-			QString::fromUtf8("当前搜索深度：%1 层。这里的“层”表示 AI 与玩家轮流向后推演的搜索层级。").arg(searchDepth),
+			QString::fromUtf8(u8"\u5F53\u524D\u641C\u7D22\u6DF1\u5EA6\uFF1A%1 \u5C42\u3002\u8FD9\u91CC\u7684\u201C\u5C42\u201D\u8868\u793A AI \u4E0E\u73A9\u5BB6\u8F6E\u6D41\u5411\u540E\u63A8\u6F14\u7684\u641C\u7D22\u5C42\u7EA7\u3002").arg(searchDepth),
 			card);
 		subtitle->setObjectName("subtitle");
 		subtitle->setWordWrap(true);
 		cardLayout->addWidget(subtitle);
 
 		QLabel *logicOne = new QLabel(
-			QString::fromUtf8("1. 候选点生成\n只考虑已有棋子八邻域附近的空位，避免把时间浪费在离战场很远的位置。"),
+			QString::fromUtf8(u8"1. \u5019\u9009\u70B9\u751F\u6210\n\u53EA\u8003\u8651\u5DF2\u6709\u68CB\u5B50\u516B\u90BB\u57DF\u9644\u8FD1\u7684\u7A7A\u4F4D\uFF0C\u907F\u514D\u628A\u65F6\u95F4\u6D6A\u8D39\u5728\u79BB\u6218\u573A\u5F88\u8FDC\u7684\u4F4D\u7F6E\u3002"),
 			card);
 		logicOne->setObjectName("section");
 		logicOne->setWordWrap(true);
 		cardLayout->addWidget(logicOne);
 
 		QLabel *logicTwo = new QLabel(
-			QString::fromUtf8("2. 搜索方式\nAI 使用极大极小搜索：AI 落子时尽量让局面分数更高，玩家回合则假设你会选择最压制 AI 的应手。"),
+			QString::fromUtf8(u8"2. \u641C\u7D22\u65B9\u5F0F\nAI \u4F7F\u7528\u6781\u5927\u6781\u5C0F\u641C\u7D22\uFF1AAI \u843D\u5B50\u65F6\u5C3D\u91CF\u8BA9\u5C40\u9762\u5206\u6570\u66F4\u9AD8\uFF0C\u73A9\u5BB6\u56DE\u5408\u5219\u5047\u8BBE\u4F60\u4F1A\u9009\u62E9\u6700\u538B\u5236 AI \u7684\u5E94\u624B\u3002"),
 			card);
 		logicTwo->setObjectName("section");
 		logicTwo->setWordWrap(true);
 		cardLayout->addWidget(logicTwo);
 
 		QLabel *logicThree = new QLabel(
-			QString::fromUtf8("3. 剪枝优化\n搜索过程中使用 alpha-beta 剪枝，提前截断已经不可能更优的分支，提高思考速度。"),
+			QString::fromUtf8(u8"3. \u526A\u679D\u4F18\u5316\n\u641C\u7D22\u8FC7\u7A0B\u4E2D\u4F7F\u7528 alpha-beta \u526A\u679D\uFF0C\u63D0\u524D\u622A\u65AD\u5DF2\u7ECF\u4E0D\u53EF\u80FD\u66F4\u4F18\u7684\u5206\u652F\uFF0C\u63D0\u9AD8\u601D\u8003\u901F\u5EA6\u3002"),
 			card);
 		logicThree->setObjectName("section");
 		logicThree->setWordWrap(true);
 		cardLayout->addWidget(logicThree);
 
 		QLabel *logicFour = new QLabel(
-			QString::fromUtf8("4. 局面评估\n评估器会统计活一、活二、活三、活四、冲四、五连等棋型分值，最后用“白方分 - 黑方分”得到当前局面优劣。"),
+			QString::fromUtf8(u8"4. \u5C40\u9762\u8BC4\u4F30\n\u8BC4\u4F30\u5668\u4F1A\u7EDF\u8BA1\u6D3B\u4E00\u3001\u6D3B\u4E8C\u3001\u6D3B\u4E09\u3001\u6D3B\u56DB\u3001\u51B2\u56DB\u3001\u4E94\u8FDE\u7B49\u68CB\u578B\u5206\u503C\uFF0C\u6700\u540E\u7528\u201C\u767D\u65B9\u5206 - \u9ED1\u65B9\u5206\u201D\u5F97\u5230\u5F53\u524D\u5C40\u9762\u4F18\u52A3\u3002"),
 			card);
 		logicFour->setObjectName("section");
 		logicFour->setWordWrap(true);
 		cardLayout->addWidget(logicFour);
 
 		QLabel *logicFive = new QLabel(
-			QString::fromUtf8("5. 最终落子\nAI 会在搜索到的最高分候选点中随机选一个，避免每次都走完全相同的固定套路。"),
+			QString::fromUtf8(u8"5. \u6700\u7EC8\u843D\u5B50\nAI \u4F1A\u5728\u641C\u7D22\u5230\u7684\u6700\u9AD8\u5206\u5019\u9009\u70B9\u4E2D\u968F\u673A\u9009\u4E00\u4E2A\uFF0C\u907F\u514D\u6BCF\u6B21\u90FD\u8D70\u5B8C\u5168\u76F8\u540C\u7684\u56FA\u5B9A\u5957\u8DEF\u3002"),
 			card);
 		logicFive->setObjectName("section");
 		logicFive->setWordWrap(true);
@@ -176,7 +184,7 @@ namespace
 		cardLayout->addStretch(1);
 
 		QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal, card);
-		QPushButton *okButton = buttonBox->addButton(QString::fromUtf8("知道了"), QDialogButtonBox::AcceptRole);
+		QPushButton *okButton = buttonBox->addButton(QString::fromUtf8(u8"\u77E5\u9053\u4E86"), QDialogButtonBox::AcceptRole);
 		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
 		cardLayout->addWidget(buttonBox);
 
@@ -190,13 +198,15 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_pLastAiPiece(0)
 	, m_pWinRateChart(0)
 	, m_pStatsStore(statsStore)
+	, m_playerRecord(playerRecord)
 	, m_sCurrentUser(playerRecord.displayName)
 	, m_bStarted(false)
+	, m_bPlayerStarts(playerRecord.preferredStarter == "player")
 	, m_pJugdeWinner(0)
 	, m_pEvaluation(0)
 	, m_nPlayerWins(playerRecord.wins)
 	, m_nAiWins(playerRecord.losses)
-	, m_nFinishedGames(playerRecord.wins + playerRecord.losses)
+	, m_nFinishedGames(playerRecord.games.isEmpty() ? playerRecord.wins + playerRecord.losses : playerRecord.games.size())
 	, m_nMoveCount(0)
 	, m_nPlayerWinRate(50.0)
 	, m_nAiWinRate(50.0)
@@ -204,13 +214,10 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 {
 	ui.setupUi(this);
 
-	// 初始化棋盘数据。
 	for (int i = 0; i < kBoardSize; ++i)
 	{
 		for (int j = 0; j < kBoardSize; ++j)
-		{
 			m_arrBoard[i][j] = NONE;
-		}
 	}
 
 	m_pGraphicsScene = new QGraphicsScene;
@@ -218,7 +225,6 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		(kLineMax - kLineMin) + 2 * kScenePadding,
 		(kLineMax - kLineMin) + 2 * kScenePadding);
 
-	// 界面风格：浅色背景 + 左侧磨砂面板 + 按钮状态反馈。
 	setStyleSheet(
 		"QMainWindow#BackgammonClass {"
 		"background: qradialgradient(cx:0.2, cy:0.15, radius:1.25, stop:0 rgba(255,255,255,230), stop:1 rgba(203,217,230,230));"
@@ -228,7 +234,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		"border: 1px solid rgba(255,255,255,195);"
 		"border-radius: 20px;"
 		"}"
-		"QPushButton#startButton {"
+		"QPushButton#startButton, QPushButton#historyButton {"
 		"background-color: rgba(255,255,255,182);"
 		"border: 1px solid rgba(120,130,150,110);"
 		"border-radius: 12px;"
@@ -236,11 +242,25 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		"font-size: 20px;"
 		"font-weight: 600;"
 		"}"
-		"QPushButton#startButton:hover {"
+		"QPushButton#startButton:hover, QPushButton#historyButton:hover {"
 		"background-color: rgba(255,255,255,228);"
 		"}"
-		"QPushButton#startButton:pressed {"
+		"QPushButton#startButton:pressed, QPushButton#historyButton:pressed {"
 		"background-color: rgba(236,242,249,236);"
+		"}"
+		"QComboBox#starterComboBox {"
+		"min-height: 56px;"
+		"padding: 0 16px;"
+		"font-size: 18px;"
+		"font-weight: 600;"
+		"border: 1px solid rgba(190,203,220,220);"
+		"border-radius: 14px;"
+		"background-color: rgba(255,255,255,210);"
+		"color: rgb(47, 58, 76);"
+		"}"
+		"QComboBox#starterComboBox::drop-down {"
+		"width: 40px;"
+		"border: none;"
 		"}"
 		"QPushButton#aiInfoButton {"
 		"background-color: rgba(255,255,255,182);"
@@ -256,6 +276,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		"QPushButton#aiInfoButton:pressed {"
 		"background-color: rgba(236,242,249,236);"
 		"}"
+		"QLabel#starterTitleLabel,"
 		"QLabel#currentUserTitleLabel,"
 		"QLabel#historyTitleLabel,"
 		"QLabel#statsTitleLabel {"
@@ -284,8 +305,12 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		"background: rgba(255,255,255,78);"
 		"border: 1px solid rgba(255,255,255,175);"
 		"border-radius: 18px;"
-		"}"
-	);
+		"}");
+
+	ui.starterComboBox->addItem(QString::fromUtf8(u8"\u6211\u5148\u624B\uFF08\u9ED1\u68CB\uFF09"), "player");
+	ui.starterComboBox->addItem(QString::fromUtf8(u8"AI \u5148\u624B\uFF08\u767D\u68CB\uFF09"), "ai");
+	const int starterIndex = m_bPlayerStarts ? 0 : 1;
+	ui.starterComboBox->setCurrentIndex(starterIndex);
 
 	ui.graphicsView->setBackgroundBrush(QColor(230, 196, 143, 225));
 	ui.graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -295,7 +320,6 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	ui.graphicsView->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
 	ui.graphicsView->setResizeAnchor(QGraphicsView::AnchorViewCenter);
 
-	// 用阴影增强“玻璃卡片”层次感。
 	QGraphicsDropShadowEffect *leftShadow = new QGraphicsDropShadowEffect(this);
 	leftShadow->setBlurRadius(34);
 	leftShadow->setOffset(0, 10);
@@ -319,6 +343,8 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	UpdateStatsPanel();
 
 	connect(ui.startButton, SIGNAL(clicked()), this, SLOT(slotStartBtnClicked()));
+	connect(ui.historyButton, SIGNAL(clicked()), this, SLOT(slotHistoryBtnClicked()));
+	connect(ui.starterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotStarterChanged(int)));
 	connect(ui.aiInfoButton, &QPushButton::clicked, this, [this]() { ShowAiLogicDialog(this, m_nDeep); });
 	ui.startButton->setChecked(false);
 	m_pJugdeWinner = new judgeWinner();
@@ -337,7 +363,7 @@ void Backgammon::DrawBoard()
 	gridPen.setWidth(2);
 	for (int i = 0; i < kBoardSize; ++i)
 	{
-		int coord = BoardToScene(i);
+		const int coord = BoardToScene(i);
 		m_pGraphicsScene->addLine(kLineMin, coord, kLineMax, coord, gridPen);
 		m_pGraphicsScene->addLine(coord, kLineMin, coord, kLineMax, gridPen);
 	}
@@ -347,44 +373,50 @@ void Backgammon::slotStartBtnClicked()
 {
 	if (ui.startButton->isChecked())
 	{
-		// 开始游戏时由电脑先手，下在天元位置。
-		ui.startButton->setText(QString::fromUtf8(u8"\u6e05\u9664"));
+		ui.startButton->setText(QString::fromUtf8(u8"\u6E05\u9664"));
+		ui.starterComboBox->setEnabled(false);
 		m_bStarted = true;
 		ResetWinRateEstimate();
-		int x = BoardToScene(kBoardCenter) - kPieceRadius;
-		int y = BoardToScene(kBoardCenter) - kPieceRadius;
-		QGraphicsEllipseItem *aiPiece = m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
-		SetLastAiPiece(aiPiece);
-		m_arrBoard[kBoardCenter][kBoardCenter] = WHITE;
-		UpdateWinRateEstimate();
+		if (!m_bPlayerStarts)
+			PlaceAiOpeningMove();
+		return;
 	}
-	else
+
+	if (IsBoardClean())
 	{
-		if (!IsBoardClean())
-		{
-			QMessageBox::StandardButton btn = QMessageBox::warning(
-				this,
-				QString::fromUtf8(u8"\u8b66\u544a"),
-				QString::fromUtf8(u8"\u786e\u5b9a\u6e05\u9664\u68cb\u76d8\uff1f"),
-				QMessageBox::Yes | QMessageBox::No);
-			if (btn == QMessageBox::Yes)
-			{
-				m_bStarted = false;
-				ui.startButton->setText(QString::fromUtf8(u8"\u5f00\u59cb"));
-				CleanBoard();
-				return;
-			}
-			else
-			{
-				ui.startButton->setChecked(true);
-			}
-		}
+		FinishRoundCleanup();
+		return;
 	}
+
+	QMessageBox::StandardButton btn = QMessageBox::warning(
+		this,
+		QString::fromUtf8(u8"\u8B66\u544A"),
+		QString::fromUtf8(u8"\u786E\u5B9A\u6E05\u9664\u68CB\u76D8\uFF1F"),
+		QMessageBox::Yes | QMessageBox::No);
+	if (btn == QMessageBox::Yes)
+	{
+		FinishRoundCleanup();
+		return;
+	}
+
+	ui.startButton->setChecked(true);
+}
+
+void Backgammon::slotStarterChanged(int)
+{
+	m_bPlayerStarts = (CurrentStarterPreference() == "player");
+	m_playerRecord.preferredStarter = CurrentStarterPreference();
+	PersistPlayerRecord();
+	UpdateStatsPanel();
+}
+
+void Backgammon::slotHistoryBtnClicked()
+{
+	HistoryDialog(m_sCurrentUser, m_playerRecord, this).exec();
 }
 
 bool Backgammon::IsBoardClean()
 {
-	// 空盘时仅包含 15 条横线 + 15 条竖线。
 	return m_pGraphicsScene->items().size() <= (kBoardSize * 2);
 }
 
@@ -405,70 +437,51 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 	if (!m_bStarted)
 		return;
 
-	// 把主窗口坐标转换为 graphicsView 坐标。
 	QPoint viewPos = ui.graphicsView->mapFrom(this, event->pos());
 	if (!ui.graphicsView->rect().contains(viewPos))
 		return;
 
 	QPointF scenePos = ui.graphicsView->mapToScene(viewPos);
-	int nHm = SceneToBoard(scenePos.x());
-	int nHn = SceneToBoard(scenePos.y());
+	const int row = SceneToBoard(scenePos.x());
+	const int col = SceneToBoard(scenePos.y());
 
-	if (nHm >= kBoardSize || nHm < 0 || nHn >= kBoardSize || nHn < 0)
+	if (row >= kBoardSize || row < 0 || col >= kBoardSize || col < 0)
 	{
-		QMessageBox::warning(this, QString::fromUtf8(u8"\u8b66\u544a"), QString::fromUtf8(u8"\u65e0\u6cd5\u843d\u5b50\uff01"));
+		QMessageBox::warning(this, QString::fromUtf8(u8"\u8B66\u544A"), QString::fromUtf8(u8"\u65E0\u6CD5\u843D\u5B50\uFF01"));
 		return;
 	}
 
-	if (m_arrBoard[nHm][nHn] == NONE)
+	if (m_arrBoard[row][col] != NONE)
 	{
-		int x = BoardToScene(nHm) - kPieceRadius;
-		int y = BoardToScene(nHn) - kPieceRadius;
-		m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::black));
-		m_arrBoard[nHm][nHn] = BLACK;
-		UpdateWinRateEstimate();
-	}
-	else
-	{
-		QMessageBox::warning(this, QString::fromUtf8(u8"\u8b66\u544a"), QString::fromUtf8(u8"\u65e0\u6cd5\u843d\u5b50\uff01"));
+		QMessageBox::warning(this, QString::fromUtf8(u8"\u8B66\u544A"), QString::fromUtf8(u8"\u65E0\u6CD5\u843D\u5B50\uFF01"));
 		return;
 	}
 
-	// 玩家胜负判断。
+	PlacePlayerMove(row, col);
+	UpdateWinRateEstimate();
+
 	if (m_pJugdeWinner->IsWon(BLACK, m_arrBoard))
 	{
 		RecordGameResult(BLACK);
 		ResultDialog(this, true, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
-		CleanBoard();
-		ui.startButton->setText(QString::fromUtf8(u8"\u5f00\u59cb"));
-		ui.startButton->setChecked(false);
-		m_bStarted = false;
+		FinishRoundCleanup();
 		return;
 	}
 
-	// 电脑搜索并落子。
 	ComputerMove* pComputerMove = new ComputerMove();
 	pComputerMove->MaxMinSearch(m_arrBoard, m_nDeep);
-	int nCm = pComputerMove->X();
-	int nCn = pComputerMove->Y();
+	const int aiRow = pComputerMove->X();
+	const int aiCol = pComputerMove->Y();
 	delete pComputerMove;
 
-	m_arrBoard[nCm][nCn] = WHITE;
-
-	int cx = BoardToScene(nCm) - kPieceRadius;
-	int cy = BoardToScene(nCn) - kPieceRadius;
-	QGraphicsEllipseItem *aiPiece = m_pGraphicsScene->addEllipse(cx, cy, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
-	SetLastAiPiece(aiPiece);
+	PlaceAiMove(aiRow, aiCol);
 	UpdateWinRateEstimate();
 
 	if (m_pJugdeWinner->IsWon(WHITE, m_arrBoard))
 	{
 		RecordGameResult(WHITE);
 		ResultDialog(this, false, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
-		CleanBoard();
-		ui.startButton->setText(QString::fromUtf8(u8"\u5f00\u59cb"));
-		ui.startButton->setChecked(false);
-		m_bStarted = false;
+		FinishRoundCleanup();
 		return;
 	}
 }
@@ -484,34 +497,35 @@ void Backgammon::CleanBoard()
 
 	DrawBoard();
 
-	// 同步清空棋盘数组。
 	for (int i = 0; i < kBoardSize; ++i)
 	{
 		for (int j = 0; j < kBoardSize; ++j)
-		{
 			m_arrBoard[i][j] = NONE;
-		}
 	}
+
 	ResetWinRateEstimate();
 	UpdateBoardView();
 }
 
 void Backgammon::RecordGameResult(ePiece winner)
 {
-	if (winner == BLACK)
-	{
-		++m_nPlayerWins;
-	}
-	else if (winner == WHITE)
-	{
-		++m_nAiWins;
-	}
-	else
-	{
+	if (winner != BLACK && winner != WHITE)
 		return;
-	}
 
-	++m_nFinishedGames;
+	GameRecord game;
+	game.finishedAt = QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss");
+	game.playerWon = (winner == BLACK);
+	game.playerStarted = m_bPlayerStarts;
+	game.moveCount = m_currentGameMoves.size();
+	game.moves = m_currentGameMoves;
+	m_playerRecord.games.push_back(game);
+
+	if (winner == BLACK)
+		++m_nPlayerWins;
+	else
+		++m_nAiWins;
+
+	m_nFinishedGames = m_playerRecord.games.size();
 	PersistPlayerRecord();
 	UpdateStatsPanel();
 }
@@ -521,11 +535,11 @@ void Backgammon::PersistPlayerRecord()
 	if (!m_pStatsStore || m_sCurrentUser.trimmed().isEmpty())
 		return;
 
-	PlayerRecord record;
-	record.displayName = m_sCurrentUser;
-	record.wins = m_nPlayerWins;
-	record.losses = m_nAiWins;
-	m_pStatsStore->SaveRecord(record);
+	m_playerRecord.displayName = m_sCurrentUser;
+	m_playerRecord.wins = m_nPlayerWins;
+	m_playerRecord.losses = m_nAiWins;
+	m_playerRecord.preferredStarter = CurrentStarterPreference();
+	m_pStatsStore->SaveRecord(m_playerRecord);
 	m_pStatsStore->Save();
 }
 
@@ -536,24 +550,33 @@ void Backgammon::ResetWinRateEstimate()
 	m_nAiWinRate = 50.0;
 	m_playerRateHistory.clear();
 	m_aiRateHistory.clear();
+	m_currentGameMoves.clear();
 	m_pLastAiPiece = 0;
 	UpdateStatsPanel();
 }
 
 void Backgammon::UpdateStatsPanel()
 {
-	ui.currentUserLabel->setText(m_sCurrentUser);
-	ui.historyGamesLabel->setText(QString::fromUtf8("累计局数 %1").arg(m_nFinishedGames));
-	ui.historyPlayerRateLabel->setText(QString::fromUtf8("我 %1 胜 | 胜率 %2%").arg(m_nPlayerWins).arg(m_nFinishedGames == 0 ? 0 : qRound(m_nPlayerWins * 100.0 / m_nFinishedGames)));
-	ui.historyAiRateLabel->setText(QString::fromUtf8("AI %1 胜 | 胜率 %2%").arg(m_nAiWins).arg(m_nFinishedGames == 0 ? 0 : qRound(m_nAiWins * 100.0 / m_nFinishedGames)));
-	ui.gamesLabel->setText(QString::fromUtf8("当前手数 %1").arg(m_nMoveCount));
-	ui.playerRateLabel->setText(QString::fromUtf8("我的预估胜率 %1%").arg(qRound(m_nPlayerWinRate)));
-	ui.aiRateLabel->setText(QString::fromUtf8("AI 预估胜率 %1%").arg(qRound(m_nAiWinRate)));
+	ui.currentUserLabel->setText(
+		QString::fromUtf8(u8"%1\n\u9ED8\u8BA4\u5F00\u5C40\uFF1A%2")
+			.arg(m_sCurrentUser)
+			.arg(StarterText(m_bPlayerStarts)));
+	ui.historyGamesLabel->setText(QString::fromUtf8(u8"\u7D2F\u8BA1\u5C40\u6570 %1").arg(m_nFinishedGames));
+	ui.historyPlayerRateLabel->setText(
+		QString::fromUtf8(u8"\u6211 %1 \u80DC | \u80DC\u7387 %2%")
+			.arg(m_nPlayerWins)
+			.arg(m_nFinishedGames == 0 ? 0 : qRound(m_nPlayerWins * 100.0 / m_nFinishedGames)));
+	ui.historyAiRateLabel->setText(
+		QString::fromUtf8(u8"AI %1 \u80DC | \u80DC\u7387 %2%")
+			.arg(m_nAiWins)
+			.arg(m_nFinishedGames == 0 ? 0 : qRound(m_nAiWins * 100.0 / m_nFinishedGames)));
+	ui.gamesLabel->setText(QString::fromUtf8(u8"\u5F53\u524D\u624B\u6570 %1").arg(m_nMoveCount));
+	ui.playerRateLabel->setText(QString::fromUtf8(u8"\u6211\u7684\u9884\u4F30\u80DC\u7387 %1%").arg(qRound(m_nPlayerWinRate)));
+	ui.aiRateLabel->setText(QString::fromUtf8(u8"AI \u9884\u4F30\u80DC\u7387 %1%").arg(qRound(m_nAiWinRate)));
+	ui.historyButton->setText(QString::fromUtf8(u8"\u5386\u53F2\u5BF9\u5C40 (%1)").arg(m_playerRecord.games.size()));
 
 	if (m_pWinRateChart)
-	{
 		m_pWinRateChart->SetSeries(m_playerRateHistory, m_aiRateHistory);
-	}
 }
 
 void Backgammon::UpdateWinRateEstimate()
@@ -612,4 +635,52 @@ void Backgammon::SetLastAiPiece(QGraphicsEllipseItem *piece)
 	highlightPen.setWidth(3);
 	m_pLastAiPiece->setBrush(QColor(255, 249, 228));
 	m_pLastAiPiece->setPen(highlightPen);
+}
+
+void Backgammon::AppendMove(int row, int col, ePiece piece)
+{
+	MoveRecord move;
+	move.row = row;
+	move.col = col;
+	move.piece = piece;
+	m_currentGameMoves.push_back(move);
+}
+
+void Backgammon::PlaceAiMove(int row, int col)
+{
+	m_arrBoard[row][col] = WHITE;
+	const int x = BoardToScene(row) - kPieceRadius;
+	const int y = BoardToScene(col) - kPieceRadius;
+	QGraphicsEllipseItem *aiPiece = m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+	SetLastAiPiece(aiPiece);
+	AppendMove(row, col, WHITE);
+}
+
+void Backgammon::PlacePlayerMove(int row, int col)
+{
+	m_arrBoard[row][col] = BLACK;
+	const int x = BoardToScene(row) - kPieceRadius;
+	const int y = BoardToScene(col) - kPieceRadius;
+	m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::black));
+	AppendMove(row, col, BLACK);
+}
+
+void Backgammon::PlaceAiOpeningMove()
+{
+	PlaceAiMove(kBoardCenter, kBoardCenter);
+	UpdateWinRateEstimate();
+}
+
+void Backgammon::FinishRoundCleanup()
+{
+	m_bStarted = false;
+	ui.startButton->setText(QString::fromUtf8(u8"\u5F00\u59CB"));
+	ui.startButton->setChecked(false);
+	ui.starterComboBox->setEnabled(true);
+	CleanBoard();
+}
+
+QString Backgammon::CurrentStarterPreference() const
+{
+	return ui.starterComboBox->currentData().toString();
 }

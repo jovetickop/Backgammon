@@ -8,6 +8,29 @@
 #include <QJsonObject>
 #include <QStandardPaths>
 
+namespace
+{
+	QString NormalizeStarter(const QString &starter)
+	{
+		return starter.trimmed().toLower() == "player" ? "player" : "ai";
+	}
+
+	void ComputeWinsAndLosses(PlayerRecord &record)
+	{
+		int wins = 0;
+		int losses = 0;
+		for (int i = 0; i < record.games.size(); ++i)
+		{
+			if (record.games[i].playerWon)
+				++wins;
+			else
+				++losses;
+		}
+		record.wins = wins;
+		record.losses = losses;
+	}
+}
+
 PlayerStatsStore::PlayerStatsStore()
 {
 }
@@ -63,8 +86,47 @@ bool PlayerStatsStore::Load()
 		record.displayName = item.value("displayName").toString().trimmed();
 		record.wins = item.value("wins").toInt();
 		record.losses = item.value("losses").toInt();
+		record.preferredStarter = NormalizeStarter(item.value("preferredStarter").toString());
+
+		const QJsonArray gamesArray = item.value("games").toArray();
+		for (int gameIndex = 0; gameIndex < gamesArray.size(); ++gameIndex)
+		{
+			if (!gamesArray[gameIndex].isObject())
+				continue;
+
+			const QJsonObject gameObject = gamesArray[gameIndex].toObject();
+			GameRecord game;
+			game.finishedAt = gameObject.value("finishedAt").toString().trimmed();
+			game.playerWon = gameObject.value("playerWon").toBool();
+			game.playerStarted = gameObject.value("playerStarted").toBool();
+			game.moveCount = gameObject.value("moveCount").toInt();
+
+			const QJsonArray movesArray = gameObject.value("moves").toArray();
+			for (int moveIndex = 0; moveIndex < movesArray.size(); ++moveIndex)
+			{
+				if (!movesArray[moveIndex].isObject())
+					continue;
+
+				const QJsonObject moveObject = movesArray[moveIndex].toObject();
+				MoveRecord move;
+				move.row = moveObject.value("row").toInt();
+				move.col = moveObject.value("col").toInt();
+				move.piece = static_cast<ePiece>(moveObject.value("piece").toInt());
+				game.moves.push_back(move);
+			}
+
+			if (game.moveCount <= 0)
+				game.moveCount = game.moves.size();
+
+			record.games.push_back(game);
+		}
+
+		if (!record.games.isEmpty())
+			ComputeWinsAndLosses(record);
+
 		if (record.displayName.isEmpty())
 			record.displayName = it.key();
+
 		m_records.insert(it.key(), record);
 	}
 
@@ -100,6 +162,34 @@ bool PlayerStatsStore::Save() const
 		item.insert("displayName", it.value().displayName);
 		item.insert("wins", it.value().wins);
 		item.insert("losses", it.value().losses);
+		item.insert("preferredStarter", NormalizeStarter(it.value().preferredStarter));
+
+		QJsonArray gamesArray;
+		for (int gameIndex = 0; gameIndex < it.value().games.size(); ++gameIndex)
+		{
+			const GameRecord &game = it.value().games[gameIndex];
+			QJsonObject gameObject;
+			gameObject.insert("finishedAt", game.finishedAt);
+			gameObject.insert("playerWon", game.playerWon);
+			gameObject.insert("playerStarted", game.playerStarted);
+			gameObject.insert("moveCount", game.moveCount);
+
+			QJsonArray movesArray;
+			for (int moveIndex = 0; moveIndex < game.moves.size(); ++moveIndex)
+			{
+				const MoveRecord &move = game.moves[moveIndex];
+				QJsonObject moveObject;
+				moveObject.insert("row", move.row);
+				moveObject.insert("col", move.col);
+				moveObject.insert("piece", static_cast<int>(move.piece));
+				movesArray.push_back(moveObject);
+			}
+
+			gameObject.insert("moves", movesArray);
+			gamesArray.push_back(gameObject);
+		}
+
+		item.insert("games", gamesArray);
 		playersObject.insert(it.key(), item);
 	}
 
@@ -130,11 +220,13 @@ PlayerRecord PlayerStatsStore::RecordForUser(const QString &userName) const
 		PlayerRecord record = m_records.value(key);
 		if (record.displayName.trimmed().isEmpty())
 			record.displayName = trimmedName;
+		record.preferredStarter = NormalizeStarter(record.preferredStarter);
 		return record;
 	}
 
 	PlayerRecord record;
 	record.displayName = trimmedName;
+	record.preferredStarter = "ai";
 	return record;
 }
 
@@ -146,6 +238,9 @@ void PlayerStatsStore::SaveRecord(const PlayerRecord &record)
 
 	PlayerRecord normalizedRecord = record;
 	normalizedRecord.displayName = record.displayName.trimmed();
+	normalizedRecord.preferredStarter = NormalizeStarter(record.preferredStarter);
+	if (!normalizedRecord.games.isEmpty())
+		ComputeWinsAndLosses(normalizedRecord);
 	m_records.insert(key, normalizedRecord);
 }
 

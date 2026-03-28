@@ -4,6 +4,8 @@
 #include <QtWidgets/QMainWindow>
 #include <QString>
 #include <QVector>
+
+#include "playerstatsstore.h"
 #include "ui_backgammon.h"
 #include "types.h"
 
@@ -15,8 +17,6 @@ class QGraphicsEllipseItem;
 class judgeWinner;
 class WinRateChart;
 class Evaluation;
-class PlayerStatsStore;
-struct PlayerRecord;
 
 class Backgammon : public QMainWindow
 {
@@ -35,6 +35,8 @@ public:
 
 public slots:
 	void slotStartBtnClicked();
+	void slotStarterChanged(int index);
+	void slotHistoryBtnClicked();
 
 private:
 	void RecordGameResult(ePiece winner);
@@ -44,6 +46,12 @@ private:
 	void UpdateWinRateEstimate();
 	void UpdateBoardView();
 	void SetLastAiPiece(QGraphicsEllipseItem *piece);
+	void AppendMove(int row, int col, ePiece piece);
+	void PlaceAiMove(int row, int col);
+	void PlacePlayerMove(int row, int col);
+	void PlaceAiOpeningMove();
+	void FinishRoundCleanup();
+	QString CurrentStarterPreference() const;
 
 	Ui::BackgammonClass ui;
 	ePiece m_arrBoard[15][15];
@@ -51,8 +59,10 @@ private:
 	QGraphicsEllipseItem *m_pLastAiPiece;
 	WinRateChart *m_pWinRateChart;
 	PlayerStatsStore *m_pStatsStore;
+	PlayerRecord m_playerRecord;
 	QString m_sCurrentUser;
 	bool m_bStarted;
+	bool m_bPlayerStarts;
 	judgeWinner* m_pJugdeWinner;
 	Evaluation *m_pEvaluation;
 	int m_nPlayerWins;
@@ -63,6 +73,7 @@ private:
 	double m_nAiWinRate;
 	QVector<double> m_playerRateHistory;
 	QVector<double> m_aiRateHistory;
+	QVector<MoveRecord> m_currentGameMoves;
 	int m_nDeep;
 };
 
