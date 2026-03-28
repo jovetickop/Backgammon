@@ -9,6 +9,6 @@ script = ""
 name = "运行"
 icon = "run"
 command = '''
-start buold.bat
+start build.bat
 start run.bat
 '''

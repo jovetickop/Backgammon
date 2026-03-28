@@ -6,6 +6,8 @@
 #include "types.h"
 
 class QMouseEvent;
+class QResizeEvent;
+class QShowEvent;
 class QGraphicsScene;
 class judgeWinner;
 
@@ -24,6 +26,9 @@ public:
 	bool IsBoardClean();
 	// 处理鼠标落子。
 	void mousePressEvent(QMouseEvent * event);
+	// 窗口显示与尺寸变化时同步刷新棋盘缩放。
+	void showEvent(QShowEvent *event);
+	void resizeEvent(QResizeEvent *event);
 	// 清空棋盘并重置数据。
 	void CleanBoard();
 
@@ -32,6 +37,8 @@ public slots:
 	void slotStartBtnClicked();
 
 private:
+	void UpdateBoardView();
+
 	Ui::BackgammonClass ui;
 	ePiece m_arrBoard[15][15];
 	QGraphicsScene *m_pGraphicsScene;

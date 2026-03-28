@@ -4,6 +4,8 @@
 #include <QMouseEvent>
 #include <QGraphicsView>
 #include <QGraphicsDropShadowEffect>
+#include <QResizeEvent>
+#include <QShowEvent>
 #include <QPen>
 #include <cmath>
 #include "ComputerMove.h"
@@ -91,6 +93,8 @@ Backgammon::Backgammon(QWidget *parent)
 	ui.graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	ui.graphicsView->setRenderHint(QPainter::Antialiasing);
 	ui.graphicsView->setScene(m_pGraphicsScene);
+	ui.graphicsView->setTransformationAnchor(QGraphicsView::AnchorViewCenter);
+	ui.graphicsView->setResizeAnchor(QGraphicsView::AnchorViewCenter);
 
 	// 用阴影增强“玻璃卡片”层次感。
 	QGraphicsDropShadowEffect *leftShadow = new QGraphicsDropShadowEffect(this);
@@ -172,6 +176,18 @@ bool Backgammon::IsBoardClean()
 {
 	// 空盘时仅包含 15 条横线 + 15 条竖线。
 	return m_pGraphicsScene->items().size() <= (kBoardSize * 2);
+}
+
+void Backgammon::showEvent(QShowEvent *event)
+{
+	QMainWindow::showEvent(event);
+	UpdateBoardView();
+}
+
+void Backgammon::resizeEvent(QResizeEvent *event)
+{
+	QMainWindow::resizeEvent(event);
+	UpdateBoardView();
 }
 
 void Backgammon::mousePressEvent(QMouseEvent * event)
@@ -261,4 +277,17 @@ void Backgammon::CleanBoard()
 			m_arrBoard[i][j] = NONE;
 		}
 	}
+	UpdateBoardView();
+}
+
+void Backgammon::UpdateBoardView()
+{
+	if (!ui.graphicsView || !ui.graphicsView->scene())
+		return;
+
+	if (ui.graphicsView->viewport()->width() <= 0 || ui.graphicsView->viewport()->height() <= 0)
+		return;
+
+	ui.graphicsView->resetTransform();
+	ui.graphicsView->fitInView(ui.graphicsView->scene()->sceneRect(), Qt::KeepAspectRatio);
 }
