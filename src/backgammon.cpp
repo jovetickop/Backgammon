@@ -8,11 +8,17 @@
 #include <QResizeEvent>
 #include <QShowEvent>
 #include <QPen>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QFrame>
+#include <QLabel>
+#include <QPushButton>
 #include <QVBoxLayout>
 #include <cmath>
 #include "ComputerMove.h"
 #include "Evaluation.h"
 #include "judgeWinner.h"
+#include "playerstatsstore.h"
 #include "resultdialog.h"
 #include "winratechart.h"
 
@@ -57,19 +63,140 @@ namespace
 		const double offset = normalized * 49.0;
 		return 50.0 + (boundedScore > 0.0 ? offset : -offset);
 	}
+
+	void ShowAiLogicDialog(QWidget *parent, int searchDepth)
+	{
+		QDialog dialog(parent);
+		dialog.setModal(true);
+		dialog.setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+		dialog.setWindowTitle(QString::fromUtf8("AI 运行逻辑"));
+		dialog.setFixedSize(620, 500);
+		dialog.setStyleSheet(
+			"QDialog {"
+			"background-color: rgb(236, 241, 247);"
+			"}"
+			"QFrame#card {"
+			"background: qlineargradient(x1:0, y1:0, x2:1, y2:1,"
+			"stop:0 rgba(255,255,255,248), stop:1 rgba(229,236,244,248));"
+			"border: 1px solid rgba(255,255,255,220);"
+			"border-radius: 24px;"
+			"}"
+			"QLabel#title {"
+			"color: rgb(41, 52, 70);"
+			"font-size: 28px;"
+			"font-weight: 800;"
+			"}"
+			"QLabel#subtitle {"
+			"color: rgb(96, 108, 124);"
+			"font-size: 16px;"
+			"}"
+			"QLabel#section {"
+			"background-color: rgba(255,255,255,188);"
+			"border: 1px solid rgba(221,228,236,220);"
+			"border-radius: 16px;"
+			"padding: 14px 16px;"
+			"color: rgb(56, 69, 89);"
+			"font-size: 17px;"
+			"font-weight: 600;"
+			"}"
+			"QPushButton {"
+			"min-height: 46px;"
+			"padding: 10px 22px;"
+			"border: none;"
+			"border-radius: 14px;"
+			"font-size: 18px;"
+			"font-weight: 700;"
+			"color: white;"
+			"background-color: rgb(63, 84, 117);"
+			"}");
+
+		QVBoxLayout *rootLayout = new QVBoxLayout(&dialog);
+		rootLayout->setContentsMargins(18, 18, 18, 18);
+
+		QFrame *card = new QFrame(&dialog);
+		card->setObjectName("card");
+		rootLayout->addWidget(card);
+
+		QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(&dialog);
+		shadow->setBlurRadius(34);
+		shadow->setOffset(0, 12);
+		shadow->setColor(QColor(65, 82, 106, 80));
+		card->setGraphicsEffect(shadow);
+
+		QVBoxLayout *cardLayout = new QVBoxLayout(card);
+		cardLayout->setContentsMargins(28, 28, 28, 24);
+		cardLayout->setSpacing(14);
+
+		QLabel *title = new QLabel(QString::fromUtf8("AI 决策说明"), card);
+		title->setObjectName("title");
+		cardLayout->addWidget(title);
+
+		QLabel *subtitle = new QLabel(
+			QString::fromUtf8("当前搜索深度：%1 层。这里的“层”表示 AI 与玩家轮流向后推演的搜索层级。").arg(searchDepth),
+			card);
+		subtitle->setObjectName("subtitle");
+		subtitle->setWordWrap(true);
+		cardLayout->addWidget(subtitle);
+
+		QLabel *logicOne = new QLabel(
+			QString::fromUtf8("1. 候选点生成\n只考虑已有棋子八邻域附近的空位，避免把时间浪费在离战场很远的位置。"),
+			card);
+		logicOne->setObjectName("section");
+		logicOne->setWordWrap(true);
+		cardLayout->addWidget(logicOne);
+
+		QLabel *logicTwo = new QLabel(
+			QString::fromUtf8("2. 搜索方式\nAI 使用极大极小搜索：AI 落子时尽量让局面分数更高，玩家回合则假设你会选择最压制 AI 的应手。"),
+			card);
+		logicTwo->setObjectName("section");
+		logicTwo->setWordWrap(true);
+		cardLayout->addWidget(logicTwo);
+
+		QLabel *logicThree = new QLabel(
+			QString::fromUtf8("3. 剪枝优化\n搜索过程中使用 alpha-beta 剪枝，提前截断已经不可能更优的分支，提高思考速度。"),
+			card);
+		logicThree->setObjectName("section");
+		logicThree->setWordWrap(true);
+		cardLayout->addWidget(logicThree);
+
+		QLabel *logicFour = new QLabel(
+			QString::fromUtf8("4. 局面评估\n评估器会统计活一、活二、活三、活四、冲四、五连等棋型分值，最后用“白方分 - 黑方分”得到当前局面优劣。"),
+			card);
+		logicFour->setObjectName("section");
+		logicFour->setWordWrap(true);
+		cardLayout->addWidget(logicFour);
+
+		QLabel *logicFive = new QLabel(
+			QString::fromUtf8("5. 最终落子\nAI 会在搜索到的最高分候选点中随机选一个，避免每次都走完全相同的固定套路。"),
+			card);
+		logicFive->setObjectName("section");
+		logicFive->setWordWrap(true);
+		cardLayout->addWidget(logicFive);
+
+		cardLayout->addStretch(1);
+
+		QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal, card);
+		QPushButton *okButton = buttonBox->addButton(QString::fromUtf8("知道了"), QDialogButtonBox::AcceptRole);
+		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+		cardLayout->addWidget(buttonBox);
+
+		dialog.exec();
+	}
 }
 
-Backgammon::Backgammon(QWidget *parent)
+Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerRecord, QWidget *parent)
 	: QMainWindow(parent)
 	, m_pGraphicsScene(0)
 	, m_pLastAiPiece(0)
 	, m_pWinRateChart(0)
+	, m_pStatsStore(statsStore)
+	, m_sCurrentUser(playerRecord.displayName)
 	, m_bStarted(false)
 	, m_pJugdeWinner(0)
 	, m_pEvaluation(0)
-	, m_nPlayerWins(0)
-	, m_nAiWins(0)
-	, m_nFinishedGames(0)
+	, m_nPlayerWins(playerRecord.wins)
+	, m_nAiWins(playerRecord.losses)
+	, m_nFinishedGames(playerRecord.wins + playerRecord.losses)
 	, m_nMoveCount(0)
 	, m_nPlayerWinRate(50.0)
 	, m_nAiWinRate(50.0)
@@ -115,6 +242,21 @@ Backgammon::Backgammon(QWidget *parent)
 		"QPushButton#startButton:pressed {"
 		"background-color: rgba(236,242,249,236);"
 		"}"
+		"QPushButton#aiInfoButton {"
+		"background-color: rgba(255,255,255,182);"
+		"border: 1px solid rgba(120,130,150,110);"
+		"border-radius: 34px;"
+		"font-size: 28px;"
+		"font-weight: 700;"
+		"color: rgb(63, 84, 117);"
+		"}"
+		"QPushButton#aiInfoButton:hover {"
+		"background-color: rgba(255,255,255,232);"
+		"}"
+		"QPushButton#aiInfoButton:pressed {"
+		"background-color: rgba(236,242,249,236);"
+		"}"
+		"QLabel#currentUserTitleLabel,"
 		"QLabel#historyTitleLabel,"
 		"QLabel#statsTitleLabel {"
 		"color: rgb(58,70,90);"
@@ -122,6 +264,7 @@ Backgammon::Backgammon(QWidget *parent)
 		"font-weight: 700;"
 		"padding-top: 8px;"
 		"}"
+		"QLabel#currentUserLabel,"
 		"QLabel#historyGamesLabel, QLabel#historyPlayerRateLabel, QLabel#historyAiRateLabel,"
 		"QLabel#gamesLabel, QLabel#playerRateLabel, QLabel#aiRateLabel {"
 		"color: rgb(74,86,105);"
@@ -176,6 +319,7 @@ Backgammon::Backgammon(QWidget *parent)
 	UpdateStatsPanel();
 
 	connect(ui.startButton, SIGNAL(clicked()), this, SLOT(slotStartBtnClicked()));
+	connect(ui.aiInfoButton, &QPushButton::clicked, this, [this]() { ShowAiLogicDialog(this, m_nDeep); });
 	ui.startButton->setChecked(false);
 	m_pJugdeWinner = new judgeWinner();
 	m_pEvaluation = new Evaluation();
@@ -368,7 +512,21 @@ void Backgammon::RecordGameResult(ePiece winner)
 	}
 
 	++m_nFinishedGames;
+	PersistPlayerRecord();
 	UpdateStatsPanel();
+}
+
+void Backgammon::PersistPlayerRecord()
+{
+	if (!m_pStatsStore || m_sCurrentUser.trimmed().isEmpty())
+		return;
+
+	PlayerRecord record;
+	record.displayName = m_sCurrentUser;
+	record.wins = m_nPlayerWins;
+	record.losses = m_nAiWins;
+	m_pStatsStore->SaveRecord(record);
+	m_pStatsStore->Save();
 }
 
 void Backgammon::ResetWinRateEstimate()
@@ -384,9 +542,10 @@ void Backgammon::ResetWinRateEstimate()
 
 void Backgammon::UpdateStatsPanel()
 {
+	ui.currentUserLabel->setText(m_sCurrentUser);
 	ui.historyGamesLabel->setText(QString::fromUtf8("累计局数 %1").arg(m_nFinishedGames));
-	ui.historyPlayerRateLabel->setText(QString::fromUtf8("我的历史胜率 %1%").arg(m_nFinishedGames == 0 ? 0 : qRound(m_nPlayerWins * 100.0 / m_nFinishedGames)));
-	ui.historyAiRateLabel->setText(QString::fromUtf8("AI 历史胜率 %1%").arg(m_nFinishedGames == 0 ? 0 : qRound(m_nAiWins * 100.0 / m_nFinishedGames)));
+	ui.historyPlayerRateLabel->setText(QString::fromUtf8("我 %1 胜 | 胜率 %2%").arg(m_nPlayerWins).arg(m_nFinishedGames == 0 ? 0 : qRound(m_nPlayerWins * 100.0 / m_nFinishedGames)));
+	ui.historyAiRateLabel->setText(QString::fromUtf8("AI %1 胜 | 胜率 %2%").arg(m_nAiWins).arg(m_nFinishedGames == 0 ? 0 : qRound(m_nAiWins * 100.0 / m_nFinishedGames)));
 	ui.gamesLabel->setText(QString::fromUtf8("当前手数 %1").arg(m_nMoveCount));
 	ui.playerRateLabel->setText(QString::fromUtf8("我的预估胜率 %1%").arg(qRound(m_nPlayerWinRate)));
 	ui.aiRateLabel->setText(QString::fromUtf8("AI 预估胜率 %1%").arg(qRound(m_nAiWinRate)));

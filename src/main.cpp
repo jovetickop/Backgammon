@@ -1,11 +1,27 @@
-﻿#include "backgammon.h"
+#include "backgammon.h"
+#include "logindialog.h"
+#include "playerstatsstore.h"
+
 #include <QtWidgets/QApplication>
 
 int main(int argc, char *argv[])
 {
-	// Qt 应用入口：初始化事件循环并展示主窗口。
 	QApplication a(argc, argv);
-	Backgammon w;
+
+	PlayerStatsStore statsStore;
+	statsStore.Load();
+
+	LoginDialog loginDialog(&statsStore);
+	if (loginDialog.exec() != QDialog::Accepted)
+		return 0;
+
+	const QString userName = loginDialog.UserName();
+	statsStore.SetLastUser(userName);
+	statsStore.TouchRecentUser(userName);
+	statsStore.Save();
+
+	const PlayerRecord playerRecord = statsStore.RecordForUser(userName);
+	Backgammon w(&statsStore, playerRecord);
 	w.show();
 	return a.exec();
 }

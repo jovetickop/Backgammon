@@ -79,15 +79,17 @@ void WinRateChart::paintEvent(QPaintEvent *event)
 	painter.drawLine(chartRect.bottomLeft(), chartRect.bottomRight());
 	painter.drawLine(chartRect.bottomLeft(), chartRect.topLeft());
 
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(kPlayerColor);
-	painter.drawRoundedRect(QRectF(chartRect.left(), 16, 20, 10), 4, 4);
+	QPen legendPlayerPen(kPlayerColor);
+	legendPlayerPen.setWidth(3);
+	painter.setPen(legendPlayerPen);
+	painter.drawLine(QPointF(chartRect.left(), 21), QPointF(chartRect.left() + 20, 21));
 	painter.setPen(QColor(74, 86, 105));
 	painter.drawText(QRectF(chartRect.left() + 28, 8, 80, 24), Qt::AlignVCenter, QString::fromUtf8(u8"\u6211"));
 
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(kAiColor);
-	painter.drawRoundedRect(QRectF(chartRect.left() + 90, 16, 20, 10), 4, 4);
+	QPen legendAiPen(kAiColor);
+	legendAiPen.setWidth(3);
+	painter.setPen(legendAiPen);
+	painter.drawLine(QPointF(chartRect.left() + 90, 21), QPointF(chartRect.left() + 110, 21));
 	painter.setPen(QColor(74, 86, 105));
 	painter.drawText(QRectF(chartRect.left() + 118, 8, 80, 24), Qt::AlignVCenter, QString::fromUtf8("AI"));
 
@@ -133,38 +135,35 @@ void WinRateChart::paintEvent(QPaintEvent *event)
 
 	for (int i = 0; i < pointCount; ++i)
 	{
-		painter.setPen(Qt::NoPen);
-		painter.setBrush(QColor(255, 255, 255, 210));
-		painter.drawEllipse(playerPoints[i], 6, 6);
-		painter.drawEllipse(aiPoints[i], 6, 6);
+		painter.setPen(QPen(kPlayerColor, 2));
+		painter.setBrush(QColor(255, 255, 255, 245));
+		painter.drawEllipse(playerPoints[i], 5, 5);
 
-		painter.setBrush(kPlayerColor);
-		painter.drawEllipse(playerPoints[i], 3.5, 3.5);
-		painter.setBrush(kAiColor);
-		painter.drawEllipse(aiPoints[i], 3.5, 3.5);
+		painter.setPen(QPen(kAiColor, 2));
+		painter.drawEllipse(aiPoints[i], 5, 5);
 	}
 
 	const QPointF latestPlayer = playerPoints.last();
 	const QPointF latestAi = aiPoints.last();
 
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(kPlayerColor);
+	painter.setPen(QPen(kPlayerColor, 2));
+	painter.setBrush(QColor(255, 255, 255, 240));
 	painter.drawRoundedRect(QRectF(chartRect.right() - 116, chartRect.top() + 10, 104, 28), 10, 10);
-	painter.setPen(Qt::white);
+	painter.setPen(kPlayerColor);
 	painter.drawText(QRectF(chartRect.right() - 116, chartRect.top() + 10, 104, 28),
 		Qt::AlignCenter, QString::fromUtf8(u8"\u6211 %1%").arg(qRound(m_playerRates.last())));
 
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(kAiColor);
+	painter.setPen(QPen(kAiColor, 2));
+	painter.setBrush(QColor(255, 255, 255, 240));
 	painter.drawRoundedRect(QRectF(chartRect.right() - 116, chartRect.top() + 44, 104, 28), 10, 10);
-	painter.setPen(Qt::white);
+	painter.setPen(kAiColor);
 	painter.drawText(QRectF(chartRect.right() - 116, chartRect.top() + 44, 104, 28),
 		Qt::AlignCenter, QString::fromUtf8("AI %1%").arg(qRound(m_aiRates.last())));
 
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(kPlayerColor);
+	painter.setPen(QPen(kPlayerColor, 2));
+	painter.setBrush(QColor(255, 255, 255, 250));
 	painter.drawEllipse(latestPlayer, 5, 5);
-	painter.setBrush(kAiColor);
+	painter.setPen(QPen(kAiColor, 2));
 	painter.drawEllipse(latestAi, 5, 5);
 
 	painter.setPen(QColor(96, 108, 124, 180));

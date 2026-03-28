@@ -22,6 +22,8 @@ set(BACKGAMMON_SOURCES
     src/ComputerMove.cpp
     src/Evaluation.cpp
     src/judgeWinner.cpp
+    src/logindialog.cpp
+    src/playerstatsstore.cpp
     src/resultdialog.cpp
     src/winratechart.cpp
 )
@@ -31,6 +33,8 @@ set(BACKGAMMON_HEADERS
     src/ComputerMove.h
     src/Evaluation.h
     src/judgeWinner.h
+    src/logindialog.h
+    src/playerstatsstore.h
     src/resultdialog.h
     src/types.h
     src/winratechart.h
