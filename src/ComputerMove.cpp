@@ -1,5 +1,5 @@
-#include "ComputerMove.h"
-#include<QTime>
+ï»¿#include "ComputerMove.h"
+#include <QTime>
 #include "judgeWinner.h"
 #include "Evaluation.h"
 
@@ -12,7 +12,6 @@ ComputerMove::ComputerMove()
 	m_pEvalution = new Evaluation;
 }
 
-
 ComputerMove::~ComputerMove(void)
 {
 	delete m_pJudgeWinner;
@@ -21,15 +20,15 @@ ComputerMove::~ComputerMove(void)
 
 void ComputerMove::Computer_1(ePiece (&arrBoard)[15][15])
 {
-	qsrand(QTime(0,0,0).msecsTo(QTime::currentTime()));
+	// ç®€å•éšæœºç­–ç•¥ï¼šéšæœºæŒ‘ä¸€ä¸ªç©ºä½ã€‚
+	qsrand(QTime(0, 0, 0).msecsTo(QTime::currentTime()));
 	bool bOk = false;
-	
-	while(!bOk)
+
+	while (!bOk)
 	{
-		int randX = qrand()%15;
-		int randY = qrand()%15;
-		//if(m_arrBoard[randX][randY] == NONE && randX != 0 && randY != 0)
-		if(arrBoard[randX][randY] == NONE)
+		int randX = qrand() % 15;
+		int randY = qrand() % 15;
+		if (arrBoard[randX][randY] == NONE)
 		{
 			x = randX;
 			y = randY;
@@ -37,37 +36,27 @@ void ComputerMove::Computer_1(ePiece (&arrBoard)[15][15])
 			return;
 		}
 	}
-
 }
-
 
 QVector<QVector<int>> ComputerMove::GenCandidator(ePiece (&arrBoard)[15][15], ePiece piece)
 {
 	QVector<QVector<int>> vecSum;
-	for(int i = 0; i< 15; ++i)
+	for (int i = 0; i < 15; ++i)
 	{
-		for(int j = 0; j< 15; ++j)
+		for (int j = 0; j < 15; ++j)
 		{
-			//°Ñ¿Õ°×µÄµãµ±×÷ºòÑ¡
-			//if(arrBoard[i][j] == NONE)
-			//{
-			//	QVector<int> vec;
-			//	vec.push_back(i);
-			//	vec.push_back(j);
-			//	vecSum.push_back(vec);
-			//}
-			
-			if(arrBoard[i][j] == NONE)
+			Q_UNUSED(piece);
+			if (arrBoard[i][j] == NONE)
 			{
-				//Ä³¸öµãµÄÖÜÎ§°Ë¸öµãÊÇ·ñÓĞÆå×Ó
-				if((i-1>=0 && j-1>=0 && arrBoard[i-1][j-1] != NONE)||
-					(i-1 >=0 &&arrBoard[i-1][j] != NONE) ||
-					(i-1 >=0 && j+1<=14 && arrBoard[i-1][j+1] != NONE) ||
-					(j-1>=0 && arrBoard[i][j-1] != NONE) ||
-					(j+1<=14 && arrBoard[i][j+1] != NONE) ||
-					(i+1<=14 && j-1>=0 && arrBoard[i+1][j-1] != NONE) ||
-					(i+1<=14 && arrBoard[i+1][j] != NONE) ||
-					(i+1<=14 && j+1 <=14 && arrBoard[i+1][j+1] != NONE))
+				// å€™é€‰ç‚¹ç­›é€‰ï¼šç©ºä½ä¸”å…«é‚»åŸŸè‡³å°‘æœ‰ä¸€æšæ£‹å­ã€‚
+				if ((i - 1 >= 0 && j - 1 >= 0 && arrBoard[i - 1][j - 1] != NONE) ||
+					(i - 1 >= 0 && arrBoard[i - 1][j] != NONE) ||
+					(i - 1 >= 0 && j + 1 <= 14 && arrBoard[i - 1][j + 1] != NONE) ||
+					(j - 1 >= 0 && arrBoard[i][j - 1] != NONE) ||
+					(j + 1 <= 14 && arrBoard[i][j + 1] != NONE) ||
+					(i + 1 <= 14 && j - 1 >= 0 && arrBoard[i + 1][j - 1] != NONE) ||
+					(i + 1 <= 14 && arrBoard[i + 1][j] != NONE) ||
+					(i + 1 <= 14 && j + 1 <= 14 && arrBoard[i + 1][j + 1] != NONE))
 				{
 					QVector<int> vec;
 					vec.push_back(i);
@@ -75,72 +64,39 @@ QVector<QVector<int>> ComputerMove::GenCandidator(ePiece (&arrBoard)[15][15], eP
 					vecSum.push_back(vec);
 				}
 			}
-
-			//if(arrBoard[i][j] == NONE)
-			//{
-			//	//Èı²½Ö®ÄÚÓĞÃ»ÓĞµã
-			//	bool bHasPoint = false;
-			//	for(int m = 0; m<=3; ++m)
-			//	{
-			//		for(int n = 0; n<=3; ++n)
-			//		{
-			//			if(m+n<=3 && arrBoard[i+m][j+n] != NONE)
-			//			{
-			//				bHasPoint = true;
-			//				break;
-			//			}
-			//			
-			//		}
-			//		if(bHasPoint)
-			//			break;
-
-			//	}
-			//	if(bHasPoint)
-			//	{
-			//		QVector<int> vec;
-			//		vec.push_back(i);
-			//		vec.push_back(j);
-			//		vecSum.push_back(vec);
-			//	}
-			//	
-			//}
-
 		}
 	}
 	return vecSum;
 }
 
-
-
 void ComputerMove::MaxMinSearch(ePiece (&arrBoard)[15][15], int deep)
 {
-	QVector<QVector<int>> vecCandidator =  GenCandidator(arrBoard, WHITE);
+	QVector<QVector<int>> vecCandidator = GenCandidator(arrBoard, WHITE);
 
 	QVector<QVector<int>> vecBestPoints;
-	int nBestScore = 0x8fffffff;  //³õÖµÊÇ×îĞ¡µÄ¸ºÊı
-	for(int i = 0; i< vecCandidator.size(); ++i)
+	int nBestScore = 0x8fffffff;
+	for (int i = 0; i < vecCandidator.size(); ++i)
 	{
-		QVector<int> vecPoint = vecCandidator[i];        //´ıÑ¡µÄµã
-		arrBoard[vecPoint[0]][vecPoint[1]] = WHITE;     //»úÆ÷ÏÂÒ»¸ö×Ó
-		//int nScore = MinSearch(arrBoard, deep-1, nBestScore>0x8fffffff ? nBestScore:0x8fffffff, 0x7fffffff);     //Ô¤¹ÀÈËÀàÏÂ×ÓµÄ·ÖÊı
-		int nScore = MinSearch(arrBoard, deep-1, 0x8fffffff, 0x7fffffff);     //Ô¤¹ÀÈËÀàÏÂ×ÓµÄ·ÖÊı
+		QVector<int> vecPoint = vecCandidator[i];
+		arrBoard[vecPoint[0]][vecPoint[1]] = WHITE;
+		int nScore = MinSearch(arrBoard, deep - 1, 0x8fffffff, 0x7fffffff);
 
-		if(nScore == nBestScore)
+		if (nScore == nBestScore)
 		{
 			vecBestPoints.push_back(vecPoint);
 		}
-		if(nScore >nBestScore)
+		if (nScore > nBestScore)
 		{
 			nBestScore = nScore;
 			vecBestPoints.clear();
 			vecBestPoints.push_back(vecPoint);
 		}
-		arrBoard[vecPoint[0]][vecPoint[1]] = NONE;     //Çå³ıÏÂµÄ×Ó
+		arrBoard[vecPoint[0]][vecPoint[1]] = NONE;
 	}
-	
-	//ÔÚ·ÖÊı×î¸ßµÄ¼¸¸öµãÖĞËæ»úÑ¡Ò»¸ö
-	qsrand(QTime(0,0,0).msecsTo(QTime::currentTime()));
-	int index = qrand()%vecBestPoints.size();
+
+	// é¿å…å›ºå®šå¥—è·¯ï¼šä»æœ€é«˜åˆ†å€™é€‰ä¸­éšæœºé€‰æ‹©ä¸€ä¸ªã€‚
+	qsrand(QTime(0, 0, 0).msecsTo(QTime::currentTime()));
+	int index = qrand() % vecBestPoints.size();
 	x = vecBestPoints[index][0];
 	y = vecBestPoints[index][1];
 }
@@ -148,28 +104,26 @@ void ComputerMove::MaxMinSearch(ePiece (&arrBoard)[15][15], int deep)
 int ComputerMove::MinSearch(ePiece (&arrBoard)[15][15], int deep, int alpha, int beta)
 {
 	int nScore = m_pEvalution->EvaluateBoard(arrBoard);
-	if(deep <=0 || m_pJudgeWinner->IsWon(BLACK, arrBoard) || m_pJudgeWinner->IsWon(WHITE, arrBoard))
+	if (deep <= 0 || m_pJudgeWinner->IsWon(BLACK, arrBoard) || m_pJudgeWinner->IsWon(WHITE, arrBoard))
 	{
 		return nScore;
 	}
 
-	int nBestScore = 0x7fffffff;  //³õÖµÊÇ×î´óµÄµÄÕıÊı£¬ÒªÑ¡³ö×îĞ¡µÄ·ÖÊı
-	QVector<QVector<int>> vecCandidator =  GenCandidator(arrBoard, BLACK);
+	int nBestScore = 0x7fffffff;
+	QVector<QVector<int>> vecCandidator = GenCandidator(arrBoard, BLACK);
 
-	for(int i = 0; i< vecCandidator.size(); ++i)
+	for (int i = 0; i < vecCandidator.size(); ++i)
 	{
-		QVector<int> vecPoint = vecCandidator[i];        //´ıÑ¡µÄµã
-		arrBoard[vecPoint[0]][vecPoint[1]] = BLACK;     //ÈËÀàÏÂÒ»¸ö×Ó
-		int nScore = MaxSearch(arrBoard, deep-1, nBestScore<alpha?nBestScore:alpha, beta);     //Ô¤¹À»úÆ÷ÏÂ×ÓµÄ·ÖÊı
-		
+		QVector<int> vecPoint = vecCandidator[i];
+		arrBoard[vecPoint[0]][vecPoint[1]] = BLACK;
+		int nScore = MaxSearch(arrBoard, deep - 1, nBestScore < alpha ? nBestScore : alpha, beta);
+
 		arrBoard[vecPoint[0]][vecPoint[1]] = NONE;
-		if(nScore < nBestScore)
+		if (nScore < nBestScore)
 			nBestScore = nScore;
-		//ÕâÊÇmin²ã£¬ĞèÒªÔÚÏÂÒ»²ãÖĞÕÒµ½×îĞ¡Öµ£¬¶ønScoreÊÇÄ¿Ç°µÃµ½µÄÏÂÒ»²ãµÄÒ»¸öÖµ£¬
-		//betaÊÇÕâÒ»²ãÄ¿Ç°µÃµ½µÄÒ»¸ö×î´óÖµ£¬¶øÕâÒ»²ãÒªÑ¡³öÒ»¸ö×î´óÖµ¸øÉÏÒ»²ã£¬Èç¹ûÄ¿Ç°µÄ
-		//¶ÔÓÚÕâ¸ö½Úµã£¬ËûÒªÑ¡Ò»¸ö×îĞ¡Öµ£¬ÄÇÃ´Ñ¡³öµÄÖµ¿Ï¶¨ÊÇĞ¡ÓÚµÈÓÚnScoreµÄ£¬¶øÕâÒ»²ãÊÇÒªÑ¡¸ö×î´óÖµ
-		//¸øÉÏÒ»²ã£¬Òò´Ë¿Ï¶¨²»»áÑ¡Õâ¸ö½ÚµãÁË£¬¹ÊÕâ¸ö×Ó½ÚµãµÄºóÃæµÄ×Ó½Úµã²»ÒªÁË¡£
-		if(nScore<beta)
+
+		// alpha-beta å‰ªæï¼šå½“å‰åˆ†æ”¯å·²ç»ä¸å¯èƒ½æ›´ä¼˜ï¼Œç›´æ¥æˆªæ–­ã€‚
+		if (nScore < beta)
 			break;
 	}
 	return nBestScore;
@@ -179,27 +133,26 @@ int ComputerMove::MaxSearch(ePiece (&arrBoard)[15][15], int deep, int alpha, int
 {
 	int nScore = m_pEvalution->EvaluateBoard(arrBoard);
 
-	if(deep <=0 || m_pJudgeWinner->IsWon(BLACK, arrBoard) || m_pJudgeWinner->IsWon(WHITE, arrBoard))
+	if (deep <= 0 || m_pJudgeWinner->IsWon(BLACK, arrBoard) || m_pJudgeWinner->IsWon(WHITE, arrBoard))
 	{
 		return nScore;
 	}
 
-	int nBestScore = 0x8fffffff;  //³õÖµÊÇ×îĞ¡µÄ¸ºÊı£¬ÒªÑ¡³ö×î´óµÄ·ÖÊı
-	QVector<QVector<int>> vecCandidator =  GenCandidator(arrBoard, WHITE);
+	int nBestScore = 0x8fffffff;
+	QVector<QVector<int>> vecCandidator = GenCandidator(arrBoard, WHITE);
 
-	for(int i = 0; i< vecCandidator.size(); ++i)
+	for (int i = 0; i < vecCandidator.size(); ++i)
 	{
-		QVector<int> vecPoint = vecCandidator[i];        //´ıÑ¡µÄµã
-		arrBoard[vecPoint[0]][vecPoint[1]] = WHITE;     //»úÆ÷ÏÂÒ»¸ö×Ó
-		int nScore = MinSearch(arrBoard, deep-1, alpha, nBestScore>beta?nBestScore:beta);     //Ô¤¹ÀÈËÀàÏÂ×ÓµÄ·ÖÊı
-		
-		arrBoard[vecPoint[0]][vecPoint[1]] = NONE; 		
-		if(nScore > nBestScore)
+		QVector<int> vecPoint = vecCandidator[i];
+		arrBoard[vecPoint[0]][vecPoint[1]] = WHITE;
+		int nScore = MinSearch(arrBoard, deep - 1, alpha, nBestScore > beta ? nBestScore : beta);
+
+		arrBoard[vecPoint[0]][vecPoint[1]] = NONE;
+		if (nScore > nBestScore)
 			nBestScore = nScore;
-		//ÕâÊÇmax²ã£¬ÒªÔÚ×Ó½ÚµãÖĞÕÒµ½Ò»¸ömax,Ä¿Ç°×Ó½ÚµãÓĞ¸öÖµÊÇnScore,ÄÇÃ´Õâ¸ö½ÚµãµÄÖµ¿Ï¶¨¾Í²»»áĞ¡ÓÚnScoreÁË£¬
-		//¶øÉÏÒ»²ãÊÇmin²ã£¬ÊÇÒªÔÚÕâÒ»²ãÖĞÕÒµ½Ò»¸ömin£¬¶øÄ¿Ç°ÕâÒ»²ãµÄminÊÇalpha£¬Èç¹ûnScore´óÓÚalpha£¬ÄÇÃ´¿Ï¶¨²»»áÑ¡ÔñÕâ¸ö½ÚµãÁË
-		//ËùÒÔÕâ¸ö×Ó½ÚµãºóÃæµÄĞÖµÜ½Úµã¶¼²»ÒªÁË¡£
-		if(nScore>alpha)
+
+		// alpha-beta å‰ªæï¼šå½“å‰åˆ†æ”¯å·²å¯ç¡®å®šä¸ä¼šè¢«ä¸Šå±‚é€‰ä¸­ã€‚
+		if (nScore > alpha)
 			break;
 	}
 	return nBestScore;

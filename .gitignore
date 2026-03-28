@@ -1,11 +1,10 @@
-# 构建输出目录
+﻿# 鏋勫缓杈撳嚭鐩綍
 /build/
 /build-fast/
 
-# 本仓库下载的本地工具链
-/tools/
+# 鏈粨搴撲笅杞界殑鏈湴宸ュ叿閾?/tools/
 
-# CMake/Ninja 生成文件（兜底）
+# CMake/Ninja 鐢熸垚鏂囦欢锛堝厹搴曪級
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
@@ -13,8 +12,7 @@ build.ninja
 .ninja_deps
 .ninja_log
 
-# Windows IDE 缓存与用户文件
-*.suo
+# Windows IDE 缂撳瓨涓庣敤鎴锋枃浠?*.suo
 *.sdf
 *.VC.db
 *.VC.opendb

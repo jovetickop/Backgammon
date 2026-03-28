@@ -1,0 +1,13 @@
+prefix=/ucrt64
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+
+Name: Qt5 Widgets
+Description: Qt Widgets module
+Version: 5.15.18
+Libs: -lQt5Widgets 
+Cflags: -DQT_WIDGETS_LIB -I${includedir}/QtWidgets 
+Requires: Qt5Core Qt5Gui
+

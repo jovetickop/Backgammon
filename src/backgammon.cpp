@@ -1,33 +1,94 @@
-#include "backgammon.h"
-#include<QGraphicsScene>
-#include<QMessageBox>
-#include<QMouseEvent>
-#include<QGraphicsView>
-#include<cmath>
-#include"ComputerMove.h"
-#include"judgeWinner.h"
+ï»¿#include "backgammon.h"
+#include <QGraphicsScene>
+#include <QMessageBox>
+#include <QMouseEvent>
+#include <QGraphicsView>
+#include <QPen>
+#include <cmath>
+#include "ComputerMove.h"
+#include "judgeWinner.h"
+
 using namespace std;
+
+namespace
+{
+	// æ£‹ç›˜ä¸ç»˜åˆ¶å‚æ•°ç»Ÿä¸€æ”¾åœ¨æ­¤å¤„ï¼Œåç»­è°ƒå°ºå¯¸åªæ”¹è¿™é‡Œã€‚
+	const int kBoardSize = 15;
+	const int kBoardCenter = 7;
+	const int kGridSize = 52;
+	const int kPieceSize = 44;
+	const int kPieceRadius = kPieceSize / 2;
+	const int kLineMin = -kBoardCenter * kGridSize;
+	const int kLineMax = kBoardCenter * kGridSize;
+	const int kScenePadding = kGridSize;
+
+	// æ£‹ç›˜æ•°ç»„ä¸‹æ ‡ -> åœºæ™¯åæ ‡ã€‚
+	int BoardToScene(int index)
+	{
+		return (index - kBoardCenter) * kGridSize;
+	}
+
+	// åœºæ™¯åæ ‡ -> æ£‹ç›˜æ•°ç»„ä¸‹æ ‡ï¼ˆå¸é™„åˆ°æœ€è¿‘äº¤å‰ç‚¹ï¼‰ã€‚
+	int SceneToBoard(double pos)
+	{
+		return static_cast<int>(std::lround(pos / kGridSize)) + kBoardCenter;
+	}
+}
 
 Backgammon::Backgammon(QWidget *parent)
 	: QMainWindow(parent)
 {
 	ui.setupUi(this);
-	
-	for(int i = 0; i< 15; ++i)
+
+	// åˆå§‹åŒ–æ£‹ç›˜æ•°æ®ã€‚
+	for (int i = 0; i < kBoardSize; ++i)
 	{
-		for(int j = 0; j< 15; ++j)
+		for (int j = 0; j < kBoardSize; ++j)
 		{
 			m_arrBoard[i][j] = NONE;
 		}
 	}
 
 	m_pGraphicsScene = new QGraphicsScene;
-	m_pGraphicsScene->setSceneRect(-300, -300, 600, 600);
+	m_pGraphicsScene->setSceneRect(kLineMin - kScenePadding, kLineMin - kScenePadding,
+		(kLineMax - kLineMin) + 2 * kScenePadding,
+		(kLineMax - kLineMin) + 2 * kScenePadding);
 
-	ui.graphicsView->setBackgroundBrush(QColor(237,191,118));    //ÉèÖÃÆåÅÌÑÕÉ«
+	// ç•Œé¢é£æ ¼ï¼šæµ…è‰²èƒŒæ™¯ + å·¦ä¾§ç£¨ç ‚é¢æ¿ + æŒ‰é’®çŠ¶æ€åé¦ˆã€‚
+	setStyleSheet(
+		"QMainWindow#BackgammonClass {"
+		"background: qradialgradient(cx:0.2, cy:0.15, radius:1.2, stop:0 rgba(255,255,255,210), stop:1 rgba(216,226,236,220));"
+		"}"
+		"QWidget#left_widget {"
+		"background-color: rgba(255,255,255,125);"
+		"border: 1px solid rgba(255,255,255,180);"
+		"border-radius: 18px;"
+		"}"
+		"QPushButton#startButton {"
+		"background-color: rgba(255,255,255,170);"
+		"border: 1px solid rgba(120,130,150,120);"
+		"border-radius: 12px;"
+		"padding: 10px 14px;"
+		"font-size: 16px;"
+		"font-weight: 600;"
+		"}"
+		"QPushButton#startButton:hover {"
+		"background-color: rgba(255,255,255,220);"
+		"}"
+		"QPushButton#startButton:pressed {"
+		"background-color: rgba(238,244,250,230);"
+		"}"
+		"QGraphicsView#graphicsView {"
+		"background: rgba(255,255,255,85);"
+		"border: 1px solid rgba(255,255,255,160);"
+		"border-radius: 16px;"
+		"}"
+	);
+
+	ui.graphicsView->setBackgroundBrush(QColor(230, 196, 143, 225));
 	ui.graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	ui.graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	ui.graphicsView->setRenderHint(QPainter::Antialiasing);  //·´×ßÑù
+	ui.graphicsView->setRenderHint(QPainter::Antialiasing);
 	ui.graphicsView->setScene(m_pGraphicsScene);
 
 	DrawBoard();
@@ -47,31 +108,41 @@ Backgammon::~Backgammon()
 
 void Backgammon::DrawBoard()
 {
-	for(int i = 0; i< 15; ++i)
+	QPen gridPen(QColor(82, 56, 32, 185));
+	gridPen.setWidth(2);
+	for (int i = 0; i < kBoardSize; ++i)
 	{
-		m_pGraphicsScene->addLine(-300, -300+40*i, 300, -300+40*i);  //Ìí¼ÓºáÏß
-		m_pGraphicsScene->addLine(-300+40*i, -300, -300+40*i, 300);   //Ìí¼ÓÊúÏß
+		int coord = BoardToScene(i);
+		m_pGraphicsScene->addLine(kLineMin, coord, kLineMax, coord, gridPen);
+		m_pGraphicsScene->addLine(coord, kLineMin, coord, kLineMax, gridPen);
 	}
 }
 
 void Backgammon::slotStartBtnClicked()
 {
-	if(ui.startButton->isChecked()) 
+	if (ui.startButton->isChecked())
 	{
-		ui.startButton->setText(QString::fromLocal8Bit("Çå³ı"));
+		// å¼€å§‹æ¸¸æˆæ—¶ç”±ç”µè„‘å…ˆæ‰‹ï¼Œä¸‹åœ¨å¤©å…ƒä½ç½®ã€‚
+		ui.startButton->setText(QString::fromUtf8(u8"\u6e05\u9664"));
 		m_bStarted = true;
-		m_pGraphicsScene->addEllipse(-40, -40, 35, 35, QPen(Qt::NoPen), QColor(Qt::white));
-		m_arrBoard[7][7] = WHITE;
+		int x = BoardToScene(kBoardCenter) - kPieceRadius;
+		int y = BoardToScene(kBoardCenter) - kPieceRadius;
+		m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+		m_arrBoard[kBoardCenter][kBoardCenter] = WHITE;
 	}
 	else
 	{
-		if(!IsBoardClean())
+		if (!IsBoardClean())
 		{
-			QMessageBox::StandardButton btn = QMessageBox::warning(this, QString::fromLocal8Bit("¾¯¸æ"),QString::fromLocal8Bit("È·¶¨Çå³ıÆåÅÌ£¿"), QMessageBox::Yes | QMessageBox::No);
-			if(btn == QMessageBox::Yes)
-			{			
+			QMessageBox::StandardButton btn = QMessageBox::warning(
+				this,
+				QString::fromUtf8(u8"\u8b66\u544a"),
+				QString::fromUtf8(u8"\u786e\u5b9a\u6e05\u9664\u68cb\u76d8\uff1f"),
+				QMessageBox::Yes | QMessageBox::No);
+			if (btn == QMessageBox::Yes)
+			{
 				m_bStarted = false;
-				ui.startButton->setText(QString::fromLocal8Bit("¿ªÊ¼"));
+				ui.startButton->setText(QString::fromUtf8(u8"\u5f00\u59cb"));
 				CleanBoard();
 				return;
 			}
@@ -81,65 +152,60 @@ void Backgammon::slotStartBtnClicked()
 			}
 		}
 	}
-
 }
 
 bool Backgammon::IsBoardClean()
 {
-	return m_pGraphicsScene->items().size() <=30 ? true:false;
+	// ç©ºç›˜æ—¶ä»…åŒ…å« 15 æ¡æ¨ªçº¿ + 15 æ¡ç«–çº¿ã€‚
+	return m_pGraphicsScene->items().size() <= (kBoardSize * 2);
 }
 
 void Backgammon::mousePressEvent(QMouseEvent * event)
 {
-	if(!m_bStarted)
+	if (!m_bStarted)
 		return;
 
-	// Ê¹ÓÃ graphicsView µÄÊµ¼Ê×ø±êÓ³Éä£¬±ÜÃâ¹Ì¶¨Æ«ÒÆµ¼ÖÂÂä×Ó´íÎ»¡£
+	// æŠŠä¸»çª—å£åæ ‡è½¬æ¢ä¸º graphicsView åæ ‡ã€‚
 	QPoint viewPos = ui.graphicsView->mapFrom(this, event->pos());
-	if(!ui.graphicsView->rect().contains(viewPos))
+	if (!ui.graphicsView->rect().contains(viewPos))
 		return;
 
 	QPointF scenePos = ui.graphicsView->mapToScene(viewPos);
+	int nHm = SceneToBoard(scenePos.x());
+	int nHn = SceneToBoard(scenePos.y());
 
-	// ÓÃ floor Í³Ò»´¦ÀíÕı¸º×ø±ê£¬±ÜÃâ±ß½çµã»÷Ê±³öÏÖÒ»¸ñÆ«²î¡£
-	int nHx = static_cast<int>(std::floor(scenePos.x()/40.0));
-	int nHy = static_cast<int>(std::floor(scenePos.y()/40.0));
-
-	int nHm,nHn;
-	nHm = nHx+8;
-	nHn = nHy+8;
-
-	if(nHm >= 15 || nHm < 0 || nHn >=15 || nHn <0)
+	if (nHm >= kBoardSize || nHm < 0 || nHn >= kBoardSize || nHn < 0)
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("¾¯¸æ"),QString::fromLocal8Bit("ÎŞ·¨Âä×Ó£¡"));
+		QMessageBox::warning(this, QString::fromUtf8(u8"\u8b66\u544a"), QString::fromUtf8(u8"\u65e0\u6cd5\u843d\u5b50\uff01"));
 		return;
 	}
 
-	if(m_arrBoard[nHm][nHn] == NONE)
+	if (m_arrBoard[nHm][nHn] == NONE)
 	{
-		m_pGraphicsScene->addEllipse(nHx*40, nHy*40, 35, 35, QPen(Qt::NoPen), QColor(Qt::black));
+		int x = BoardToScene(nHm) - kPieceRadius;
+		int y = BoardToScene(nHn) - kPieceRadius;
+		m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::black));
 		m_arrBoard[nHm][nHn] = BLACK;
 	}
 	else
 	{
-		QMessageBox::warning(this, QString::fromLocal8Bit("¾¯¸æ"),QString::fromLocal8Bit("ÎŞ·¨Âä×Ó£¡"));
+		QMessageBox::warning(this, QString::fromUtf8(u8"\u8b66\u544a"), QString::fromUtf8(u8"\u65e0\u6cd5\u843d\u5b50\uff01"));
 		return;
 	}
-	
-	//ÅĞ¶ÏÈËÀàÊÇ·ñÊ¤Àû
-	if(m_pJugdeWinner->IsWon(BLACK, m_arrBoard))
+
+	// ç©å®¶èƒœè´Ÿåˆ¤æ–­ã€‚
+	if (m_pJugdeWinner->IsWon(BLACK, m_arrBoard))
 	{
-		QMessageBox::information(this, QString::fromLocal8Bit("Winner"),QString::fromLocal8Bit("ÄãÕ½Ê¤ÁË¼ÆËã»ú£¡"));
+		QMessageBox::information(this, QString::fromUtf8(u8"Winner"), QString::fromUtf8(u8"\u4f60\u6218\u80dc\u4e86\u8ba1\u7b97\u673a\uff01"));
 		CleanBoard();
-		ui.startButton->setText(QString::fromLocal8Bit("¿ªÊ¼"));
+		ui.startButton->setText(QString::fromUtf8(u8"\u5f00\u59cb"));
 		ui.startButton->setChecked(false);
 		m_bStarted = false;
 		return;
 	}
 
-	//»úÆ÷Âä×Ó
+	// ç”µè„‘æœç´¢å¹¶è½å­ã€‚
 	ComputerMove* pComputerMove = new ComputerMove();
-	//pComputerMove->Computer_1(m_arrBoard);
 	pComputerMove->MaxMinSearch(m_arrBoard, m_nDeep);
 	int nCm = pComputerMove->X();
 	int nCn = pComputerMove->Y();
@@ -147,14 +213,15 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 
 	m_arrBoard[nCm][nCn] = WHITE;
 
-	m_pGraphicsScene->addEllipse((nCm-8)*40, (nCn-8)*40, 35, 35, QPen(Qt::NoPen), QColor(Qt::white));
-	
-	//ÅĞ¶Ï¼ÆËã»úÊÇ·ñÊ¤Àû
-	if(m_pJugdeWinner->IsWon(WHITE, m_arrBoard))
+	int cx = BoardToScene(nCm) - kPieceRadius;
+	int cy = BoardToScene(nCn) - kPieceRadius;
+	m_pGraphicsScene->addEllipse(cx, cy, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+
+	if (m_pJugdeWinner->IsWon(WHITE, m_arrBoard))
 	{
-		QMessageBox::information(this, QString::fromLocal8Bit("Winner"),QString::fromLocal8Bit("¼ÆËã»úÈ¡µÃÊ¤Àû£¡"));
+		QMessageBox::information(this, QString::fromUtf8(u8"Winner"), QString::fromUtf8(u8"\u8ba1\u7b97\u673a\u53d6\u5f97\u80dc\u5229\uff01"));
 		CleanBoard();
-		ui.startButton->setText(QString::fromLocal8Bit("¿ªÊ¼"));
+		ui.startButton->setText(QString::fromUtf8(u8"\u5f00\u59cb"));
 		ui.startButton->setChecked(false);
 		m_bStarted = false;
 		return;
@@ -163,20 +230,19 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 
 void Backgammon::CleanBoard()
 {
-	//É¾³ıÆå×ÓºÍÏß
 	QList<QGraphicsItem*> list = m_pGraphicsScene->items();
-	while(!list.isEmpty())
+	while (!list.isEmpty())
 	{
 		m_pGraphicsScene->removeItem(list[0]);
 		list.removeFirst();
 	}
 
-	DrawBoard();  //»®Ïß
+	DrawBoard();
 
-	//³õÊ¼»¯Êı×é
-	for(int i = 0; i< 15; ++i)
+	// åŒæ­¥æ¸…ç©ºæ£‹ç›˜æ•°ç»„ã€‚
+	for (int i = 0; i < kBoardSize; ++i)
 	{
-		for(int j = 0; j< 15; ++j)
+		for (int j = 0; j < kBoardSize; ++j)
 		{
 			m_arrBoard[i][j] = NONE;
 		}

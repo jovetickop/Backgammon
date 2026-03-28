@@ -1,0 +1,14 @@
+QT_ARCH = x86_64
+QT_BUILDABI = x86_64-little_endian-lp64
+QT.global.enabled_features = shared shared thread c++11 c++14 c++17 c++1z c99 c11 future concurrent pkg-config separate_debug_info signaling_nan
+QT.global.disabled_features = cross_compile framework rpath simulator_and_device appstore-compliant debug_and_release build_all c++2a c++2b force_asserts static
+QT_CONFIG += shared shared release c++11 c++14 c++17 c++1z concurrent dbus separate_debug_info stl
+CONFIG += shared shared release no_plugin_manifest
+QT_VERSION = 5.15.18
+QT_MAJOR_VERSION = 5
+QT_MINOR_VERSION = 15
+QT_PATCH_VERSION = 18
+QT_GCC_MAJOR_VERSION = 15
+QT_GCC_MINOR_VERSION = 2
+QT_GCC_PATCH_VERSION = 0
+QT_EDITION = OpenSource

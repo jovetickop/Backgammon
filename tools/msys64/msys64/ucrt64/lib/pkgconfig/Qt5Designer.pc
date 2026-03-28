@@ -1,0 +1,13 @@
+prefix=/ucrt64
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+
+Name: Qt5 Designer
+Description: Qt Designer module
+Version: 5.15.18
+Libs: -lQt5Designer 
+Cflags: -DQT_DESIGNER_LIB -I${includedir}/QtDesigner 
+Requires: Qt5Core Qt5Gui Qt5Widgets Qt5Xml Qt5UiPlugin
+

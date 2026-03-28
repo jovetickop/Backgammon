@@ -1,0 +1,14 @@
+prefix=/ucrt64
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+
+Name: Qt5 UiTools
+Description: Qt UiTools module
+Version: 5.15.18
+Libs: -lQt5UiTools 
+Libs.private: /ucrt64/lib/libQt5Widgets.dll.a /ucrt64/lib/libQt5Gui.dll.a /ucrt64/lib/libQt5Core.dll.a /ucrt64/lib/libQt5Widgets.dll.a /ucrt64/lib/libQt5Gui.dll.a /ucrt64/lib/libQt5Core.dll.a   
+Cflags: -DQT_UITOOLS_LIB -I${includedir}/QtUiTools 
+Requires: Qt5Core Qt5Gui Qt5Widgets
+

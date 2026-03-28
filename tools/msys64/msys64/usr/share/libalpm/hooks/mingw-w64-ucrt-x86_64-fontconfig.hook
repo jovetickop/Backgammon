@@ -1,0 +1,14 @@
+[Trigger]
+Type = Path
+Operation = Install
+Operation = Upgrade
+Operation = Remove
+Target = ucrt64/share/fonts/*
+Target = ucrt64/etc/fonts/conf.d/*
+Target = ucrt64/share/fontconfig/conf.avail/*
+Target = ucrt64/share/fontconfig/conf.default/*
+
+[Action]
+Description = Updating fontconfig cache...
+When = PostTransaction
+Exec = /ucrt64/bin/fc-cache -s

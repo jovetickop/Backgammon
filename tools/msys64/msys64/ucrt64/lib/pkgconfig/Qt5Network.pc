@@ -1,0 +1,13 @@
+prefix=/ucrt64
+exec_prefix=${prefix}
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+
+Name: Qt5 Network
+Description: Qt Network module
+Version: 5.15.18
+Libs: -lQt5Network 
+Cflags: -DQT_NETWORK_LIB -I${includedir}/QtNetwork 
+Requires: Qt5Core
+
