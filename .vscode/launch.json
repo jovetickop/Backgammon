@@ -2,24 +2,23 @@
     "version": "0.2.0",
     "configurations": [
         {
-            // F5 直接启动调试，由 CMake Tools 自动提供程序路径
-            "name": "调试 (CMake)",
+            "name": "调试运行",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${command:cmake.launchTargetPath}",
+            "program": "c:/code/Backgammon/build/Backgammon.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "c:/code/Backgammon",
             "environment": [
                 {
-                    // 把 Qt DLL 目录加到 PATH，否则启动会报找不到 Qt5Core.dll 等错误
                     "name": "PATH",
                     "value": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin;${env:PATH}"
                 }
             ],
             "console": "integratedTerminal",
+            "preLaunchTask": "编译项目",
             "MIMode": "gdb",
-            "miDebuggerPath": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin/gdb.exe",
+            "miDebuggerPath": "gdb",
             "setupCommands": [
                 {
                     "description": "为 gdb 启用整齐打印",
