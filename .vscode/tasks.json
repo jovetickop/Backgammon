@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            // CMake Tools 扩展会自动生成 cmake.buildTask，这里无需额外定义。
+            // Ctrl+Shift+B 将直接触发 CMake 构建（由 settings.json 中 cmake.defaultTarget 决定）。
+            "label": "构建 (CMake)",
+            "type": "cmake",
+            "command": "build",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": ["$gcc"]
+        }
+    ]
+}

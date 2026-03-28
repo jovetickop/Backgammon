@@ -1,0 +1,25 @@
+{
+    // CMake 配置
+    "cmake.configureOnOpen": true,
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "MinGW Makefiles",
+    "cmake.configureArgs": [
+        "-DCMAKE_CXX_COMPILER=g++"
+    ],
+
+    // CMake Tools 自动检测的 CMake 找不到本地的 Qt5，
+    // 需要手动指定 Qt 前缀路径，让 find_package(Qt5 ...) 能搜索到。
+    "cmake.environment": {
+        "CMAKE_PREFIX_PATH": "c:/code/Backgammon/tools/msys64/msys64/ucrt64"
+    },
+
+    // 调试时需要把 Qt 的 DLL 目录加入 PATH，否则程序无法启动。
+    "cmake.debugConfig": {
+        "environment": [
+            {
+                "name": "PATH",
+                "value": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin;${env:PATH}"
+            }
+        ]
+    }
+}

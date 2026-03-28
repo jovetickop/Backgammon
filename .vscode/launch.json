@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            // F5 直接启动调试，由 CMake Tools 自动提供程序路径
+            "name": "调试 (CMake)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    // 把 Qt DLL 目录加到 PATH，否则启动会报找不到 Qt5Core.dll 等错误
+                    "name": "PATH",
+                    "value": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin;${env:PATH}"
+                }
+            ],
+            "console": "integratedTerminal",
+            "MIMode": "gdb",
+            "miDebuggerPath": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}

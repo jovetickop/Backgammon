@@ -1,5 +1,5 @@
 ﻿#include "ComputerMove.h"
-#include <QTime>
+#include <QRandomGenerator>
 #include "judgeWinner.h"
 #include "Evaluation.h"
 
@@ -21,13 +21,13 @@ ComputerMove::~ComputerMove(void)
 void ComputerMove::Computer_1(ePiece (&arrBoard)[15][15])
 {
 	// 简单随机策略：随机挑一个空位。
-	qsrand(QTime(0, 0, 0).msecsTo(QTime::currentTime()));
+	QRandomGenerator *rng = QRandomGenerator::global();
 	bool bOk = false;
 
 	while (!bOk)
 	{
-		int randX = qrand() % 15;
-		int randY = qrand() % 15;
+		int randX = rng->bounded(15);
+		int randY = rng->bounded(15);
 		if (arrBoard[randX][randY] == NONE)
 		{
 			x = randX;
@@ -95,8 +95,7 @@ void ComputerMove::MaxMinSearch(ePiece (&arrBoard)[15][15], int deep)
 	}
 
 	// 避免固定套路：从最高分候选中随机选择一个。
-	qsrand(QTime(0, 0, 0).msecsTo(QTime::currentTime()));
-	int index = qrand() % vecBestPoints.size();
+	int index = QRandomGenerator::global()->bounded(vecBestPoints.size());
 	x = vecBestPoints[index][0];
 	y = vecBestPoints[index][1];
 }
