@@ -10,6 +10,7 @@ class QMouseEvent;
 class QResizeEvent;
 class QShowEvent;
 class QGraphicsScene;
+class QGraphicsEllipseItem;
 class judgeWinner;
 class WinRateChart;
 class Evaluation;
@@ -45,10 +46,12 @@ private:
 	void UpdateStatsPanel();
 	void UpdateWinRateEstimate();
 	void UpdateBoardView();
+	void SetLastAiPiece(QGraphicsEllipseItem *piece);
 
 	Ui::BackgammonClass ui;
 	ePiece m_arrBoard[15][15];
 	QGraphicsScene *m_pGraphicsScene;
+	QGraphicsEllipseItem *m_pLastAiPiece;
 	WinRateChart *m_pWinRateChart;
 	bool m_bStarted;
 	judgeWinner* m_pJugdeWinner;

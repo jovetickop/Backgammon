@@ -1,5 +1,6 @@
 ﻿#include "backgammon.h"
 #include <QGraphicsScene>
+#include <QGraphicsEllipseItem>
 #include <QMessageBox>
 #include <QMouseEvent>
 #include <QGraphicsView>
@@ -61,6 +62,7 @@ namespace
 Backgammon::Backgammon(QWidget *parent)
 	: QMainWindow(parent)
 	, m_pGraphicsScene(0)
+	, m_pLastAiPiece(0)
 	, m_pWinRateChart(0)
 	, m_bStarted(false)
 	, m_pJugdeWinner(0)
@@ -207,7 +209,8 @@ void Backgammon::slotStartBtnClicked()
 		ResetWinRateEstimate();
 		int x = BoardToScene(kBoardCenter) - kPieceRadius;
 		int y = BoardToScene(kBoardCenter) - kPieceRadius;
-		m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+		QGraphicsEllipseItem *aiPiece = m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+		SetLastAiPiece(aiPiece);
 		m_arrBoard[kBoardCenter][kBoardCenter] = WHITE;
 		UpdateWinRateEstimate();
 	}
@@ -310,7 +313,8 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 
 	int cx = BoardToScene(nCm) - kPieceRadius;
 	int cy = BoardToScene(nCn) - kPieceRadius;
-	m_pGraphicsScene->addEllipse(cx, cy, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+	QGraphicsEllipseItem *aiPiece = m_pGraphicsScene->addEllipse(cx, cy, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+	SetLastAiPiece(aiPiece);
 	UpdateWinRateEstimate();
 
 	if (m_pJugdeWinner->IsWon(WHITE, m_arrBoard))
@@ -374,6 +378,7 @@ void Backgammon::ResetWinRateEstimate()
 	m_nAiWinRate = 50.0;
 	m_playerRateHistory.clear();
 	m_aiRateHistory.clear();
+	m_pLastAiPiece = 0;
 	UpdateStatsPanel();
 }
 
@@ -430,4 +435,22 @@ void Backgammon::UpdateBoardView()
 
 	ui.graphicsView->resetTransform();
 	ui.graphicsView->fitInView(ui.graphicsView->scene()->sceneRect(), Qt::KeepAspectRatio);
+}
+
+void Backgammon::SetLastAiPiece(QGraphicsEllipseItem *piece)
+{
+	if (m_pLastAiPiece)
+	{
+		m_pLastAiPiece->setBrush(QColor(Qt::white));
+		m_pLastAiPiece->setPen(QPen(Qt::NoPen));
+	}
+
+	m_pLastAiPiece = piece;
+	if (!m_pLastAiPiece)
+		return;
+
+	QPen highlightPen(QColor(214, 170, 92, 220));
+	highlightPen.setWidth(3);
+	m_pLastAiPiece->setBrush(QColor(255, 249, 228));
+	m_pLastAiPiece->setPen(highlightPen);
 }
