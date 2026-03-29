@@ -33,9 +33,13 @@ public:
 	void resizeEvent(QResizeEvent *event);
 	void CleanBoard();
 
+	int CurrentDifficulty() const;
+	void SetDifficulty(int depth);
+
 public slots:
 	void slotStartBtnClicked();
 	void slotStarterChanged(int index);
+	void slotDifficultyChanged(int index);
 	void slotHistoryBtnClicked();
 
 private:
@@ -75,6 +79,7 @@ private:
 	QVector<double> m_aiRateHistory;
 	QVector<MoveRecord> m_currentGameMoves;
 	int m_nDeep;
+	int m_nPreferredDeep;
 };
 
 #endif // BACKGAMMON_H

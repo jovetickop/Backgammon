@@ -80,6 +80,7 @@ namespace
 		dialog.setWindowTitle(QString::fromUtf8(u8"AI \u8FD0\u884C\u903B\u8F91"));
 		dialog.setFixedSize(620, 500);
 		dialog.setStyleSheet(
+			"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
 			"QDialog {"
 			"background-color: rgb(236, 241, 247);"
 			"}"
@@ -211,6 +212,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_nPlayerWinRate(50.0)
 	, m_nAiWinRate(50.0)
 	, m_nDeep(8)
+	, m_nPreferredDeep(8)
 {
 	ui.setupUi(this);
 
@@ -226,6 +228,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		(kLineMax - kLineMin) + 2 * kScenePadding);
 
 	setStyleSheet(
+		"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
 		"QMainWindow#BackgammonClass {"
 		"background: qradialgradient(cx:0.2, cy:0.15, radius:1.25, stop:0 rgba(255,255,255,230), stop:1 rgba(203,217,230,230));"
 		"}"
@@ -312,6 +315,98 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	const int starterIndex = m_bPlayerStarts ? 0 : 1;
 	ui.starterComboBox->setCurrentIndex(starterIndex);
 
+	// 难度设置
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u7B80\u5355"), 4);
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u4E2D\u7B49"), 6);
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u56F0\u96BE"), 8);
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u8D85\u7EA7"), 10);
+	ui.difficultyComboBox->setCurrentIndex(2); // 默认困难
+
+	// 样式 - 复用 starterComboBox 样式
+	setStyleSheet(
+		"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
+		"QMainWindow#BackgammonClass {"
+		"background: qradialgradient(cx:0.2, cy:0.15, radius:1.25, stop:0 rgba(255,255,255,230), stop:1 rgba(203,217,230,230));"
+		"}"
+		"QWidget#left_widget {"
+		"background-color: rgba(255,255,255,112);"
+		"border: 1px solid rgba(255,255,255,195);"
+		"border-radius: 20px;"
+		"}"
+		"QPushButton#startButton, QPushButton#historyButton {"
+		"background-color: rgba(255,255,255,182);"
+		"border: 1px solid rgba(120,130,150,110);"
+		"border-radius: 12px;"
+		"padding: 14px 18px;"
+		"font-size: 20px;"
+		"font-weight: 600;"
+		"}"
+		"QPushButton#startButton:hover, QPushButton#historyButton:hover {"
+		"background-color: rgba(255,255,255,228);"
+		"}"
+		"QPushButton#startButton:pressed, QPushButton#historyButton:pressed {"
+		"background-color: rgba(236,242,249,236);"
+		"}"
+		"QComboBox#starterComboBox, QComboBox#difficultyComboBox {"
+		"min-height: 56px;"
+		"padding: 0 16px;"
+		"font-size: 18px;"
+		"font-weight: 600;"
+		"border: 1px solid rgba(190,203,220,220);"
+		"border-radius: 14px;"
+		"background-color: rgba(255,255,255,210);"
+		"color: rgb(47, 58, 76);"
+		"}"
+		"QComboBox#starterComboBox::drop-down, QComboBox#difficultyComboBox::drop-down {"
+		"width: 40px;"
+		"border: none;"
+		"}"
+		"QPushButton#aiInfoButton {"
+		"background-color: rgba(255,255,255,182);"
+		"border: 1px solid rgba(120,130,150,110);"
+		"border-radius: 34px;"
+		"font-size: 28px;"
+		"font-weight: 700;"
+		"color: rgb(63, 84, 117);"
+		"}"
+		"QPushButton#aiInfoButton:hover {"
+		"background-color: rgba(255,255,255,232);"
+		"}"
+		"QPushButton#aiInfoButton:pressed {"
+		"background-color: rgba(236,242,249,236);"
+		"}"
+		"QLabel#starterTitleLabel,"
+		"QLabel#difficultyTitleLabel,"
+		"QLabel#currentUserTitleLabel,"
+		"QLabel#historyTitleLabel,"
+		"QLabel#statsTitleLabel {"
+		"color: rgb(58,70,90);"
+		"font-size: 22px;"
+		"font-weight: 700;"
+		"padding-top: 8px;"
+		"}"
+		"QLabel#currentUserLabel,"
+		"QLabel#historyGamesLabel, QLabel#historyPlayerRateLabel, QLabel#historyAiRateLabel,"
+		"QLabel#gamesLabel, QLabel#playerRateLabel, QLabel#aiRateLabel {"
+		"color: rgb(74,86,105);"
+		"background-color: rgba(255,255,255,148);"
+		"border: 1px solid rgba(255,255,255,198);"
+		"border-radius: 12px;"
+		"padding: 14px 16px;"
+		"font-size: 18px;"
+		"font-weight: 600;"
+		"}"
+		"QWidget#chartHost {"
+		"background-color: rgba(255,255,255,128);"
+		"border: 1px solid rgba(255,255,255,195);"
+		"border-radius: 16px;"
+		"}"
+		"QGraphicsView#graphicsView {"
+		"background: rgba(255,255,255,78);"
+		"border: 1px solid rgba(255,255,255,175);"
+		"border-radius: 18px;"
+		"}");
+
 	ui.graphicsView->setBackgroundBrush(QColor(230, 196, 143, 225));
 	ui.graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	ui.graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -345,6 +440,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	connect(ui.startButton, SIGNAL(clicked()), this, SLOT(slotStartBtnClicked()));
 	connect(ui.historyButton, SIGNAL(clicked()), this, SLOT(slotHistoryBtnClicked()));
 	connect(ui.starterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotStarterChanged(int)));
+	connect(ui.difficultyComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotDifficultyChanged(int)));
 	connect(ui.aiInfoButton, &QPushButton::clicked, this, [this]() { ShowAiLogicDialog(this, m_nDeep); });
 	ui.startButton->setChecked(false);
 	m_pJugdeWinner = new judgeWinner();
@@ -375,6 +471,7 @@ void Backgammon::slotStartBtnClicked()
 	{
 		ui.startButton->setText(QString::fromUtf8(u8"\u6E05\u9664"));
 		ui.starterComboBox->setEnabled(false);
+		ui.difficultyComboBox->setEnabled(false);
 		m_bStarted = true;
 		ResetWinRateEstimate();
 		if (!m_bPlayerStarts)
@@ -408,6 +505,24 @@ void Backgammon::slotStarterChanged(int)
 	m_playerRecord.preferredStarter = CurrentStarterPreference();
 	PersistPlayerRecord();
 	UpdateStatsPanel();
+}
+
+void Backgammon::slotDifficultyChanged(int index)
+{
+	const int depth = ui.difficultyComboBox->itemData(index).toInt();
+	SetDifficulty(depth);
+}
+
+int Backgammon::CurrentDifficulty() const
+{
+	return m_nDeep;
+}
+
+void Backgammon::SetDifficulty(int depth)
+{
+	m_nDeep = depth;
+	m_nPreferredDeep = depth;
+	ShowAiLogicDialog(this, m_nDeep);
 }
 
 void Backgammon::slotHistoryBtnClicked()
@@ -677,6 +792,7 @@ void Backgammon::FinishRoundCleanup()
 	ui.startButton->setText(QString::fromUtf8(u8"\u5F00\u59CB"));
 	ui.startButton->setChecked(false);
 	ui.starterComboBox->setEnabled(true);
+	ui.difficultyComboBox->setEnabled(true);
 	CleanBoard();
 }
 

@@ -113,76 +113,86 @@
         <widget class="QComboBox" name="starterComboBox"/>
        </item>
        <item row="3" column="0" colspan="3">
+        <widget class="QLabel" name="difficultyTitleLabel">
+         <property name="text">
+          <string>AI 难度</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="3">
+        <widget class="QComboBox" name="difficultyComboBox"/>
+       </item>
+       <item row="5" column="0" colspan="3">
         <widget class="QLabel" name="currentUserTitleLabel">
          <property name="text">
           <string>当前用户</string>
          </property>
         </widget>
        </item>
-       <item row="4" column="0" colspan="3">
+       <item row="6" column="0" colspan="3">
         <widget class="QLabel" name="currentUserLabel">
          <property name="text">
           <string>-</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="0" colspan="3">
+       <item row="7" column="0" colspan="3">
         <widget class="QLabel" name="historyTitleLabel">
          <property name="text">
           <string>历史战绩</string>
          </property>
         </widget>
        </item>
-       <item row="6" column="0" colspan="3">
+       <item row="8" column="0" colspan="3">
         <widget class="QLabel" name="historyGamesLabel">
          <property name="text">
           <string>累计局数 0</string>
          </property>
         </widget>
        </item>
-       <item row="7" column="0" colspan="3">
+       <item row="9" column="0" colspan="3">
         <widget class="QLabel" name="historyPlayerRateLabel">
          <property name="text">
           <string>我 0 胜 | 胜率 0%</string>
          </property>
         </widget>
        </item>
-       <item row="8" column="0" colspan="3">
+       <item row="10" column="0" colspan="3">
         <widget class="QLabel" name="historyAiRateLabel">
          <property name="text">
           <string>AI 0 胜 | 胜率 0%</string>
          </property>
         </widget>
        </item>
-       <item row="9" column="0" colspan="3">
+       <item row="11" column="0" colspan="3">
         <widget class="QLabel" name="statsTitleLabel">
          <property name="text">
           <string>当前局面</string>
          </property>
         </widget>
        </item>
-       <item row="10" column="0" colspan="3">
+       <item row="12" column="0" colspan="3">
         <widget class="QLabel" name="gamesLabel">
          <property name="text">
           <string>当前手数 0</string>
          </property>
         </widget>
        </item>
-       <item row="11" column="0" colspan="3">
+       <item row="13" column="0" colspan="3">
         <widget class="QLabel" name="playerRateLabel">
          <property name="text">
           <string>我的预估胜率 50%</string>
          </property>
         </widget>
        </item>
-       <item row="12" column="0" colspan="3">
+       <item row="14" column="0" colspan="3">
         <widget class="QLabel" name="aiRateLabel">
          <property name="text">
           <string>AI 预估胜率 50%</string>
          </property>
         </widget>
        </item>
-       <item row="13" column="0" colspan="3">
+       <item row="15" column="0" colspan="3">
         <widget class="QWidget" name="chartHost" native="true">
          <property name="minimumSize">
           <size>
@@ -192,7 +202,7 @@
          </property>
         </widget>
        </item>
-       <item row="14" column="0" colspan="3">
+       <item row="16" column="0" colspan="3">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
