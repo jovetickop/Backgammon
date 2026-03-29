@@ -5,6 +5,7 @@
 #include <QGraphicsDropShadowEffect>
 #include <QLabel>
 #include <QListWidget>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -12,12 +13,12 @@ namespace
 {
 	QString StarterText(bool playerStarted)
 	{
-		return playerStarted ? QString::fromUtf8(u8"\u6211\u5148\u624B") : QString::fromUtf8(u8"AI \u5148\u624B");
+		return playerStarted ? QString::fromUtf8(u8"我先手") : QString::fromUtf8(u8"AI 先手");
 	}
 
 	QString ResultText(bool playerWon)
 	{
-		return playerWon ? QString::fromUtf8(u8"\u80DC\u5229") : QString::fromUtf8(u8"\u5931\u5229");
+		return playerWon ? QString::fromUtf8(u8"胜利") : QString::fromUtf8(u8"失利");
 	}
 
 	QString MoveText(const MoveRecord &move)
@@ -28,7 +29,7 @@ namespace
 	QString MovesPreview(const QVector<MoveRecord> &moves)
 	{
 		if (moves.isEmpty())
-			return QString::fromUtf8(u8"\u6682\u65E0\u843D\u5B50\u5E8F\u5217");
+			return QString::fromUtf8(u8"暂无落子序列");
 
 		QStringList parts;
 		const int previewCount = qMin(8, moves.size());
@@ -42,10 +43,12 @@ namespace
 
 HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record, QWidget *parent)
 	: QDialog(parent)
+	, m_pHistoryList(nullptr)
+	, m_pDeleteButton(nullptr)
 {
 	setModal(true);
 	setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-	setWindowTitle(QString::fromUtf8(u8"\u5386\u53F2\u5BF9\u5C40"));
+	setWindowTitle(QString::fromUtf8(u8"历史对局"));
 	setMinimumSize(760, 620);
 	setStyleSheet(
 		"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
@@ -81,7 +84,11 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 		"border-radius: 12px;"
 		"background-color: rgba(247,250,253,228);"
 		"}"
-		"QPushButton {"
+		"QListWidget::item:selected {"
+		"background-color: rgba(200, 218, 240, 228);"
+		"color: rgb(30, 50, 80);"
+		"}"
+		"QPushButton#closeBtn {"
 		"min-height: 46px;"
 		"padding: 10px 22px;"
 		"border: none;"
@@ -90,6 +97,22 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 		"font-weight: 700;"
 		"color: white;"
 		"background-color: rgb(63, 84, 117);"
+		"}"
+		"QPushButton#deleteBtn {"
+		"min-height: 46px;"
+		"padding: 10px 22px;"
+		"border: none;"
+		"border-radius: 14px;"
+		"font-size: 18px;"
+		"font-weight: 700;"
+		"color: white;"
+		"background-color: rgb(200, 80, 80);"
+		"}"
+		"QPushButton#deleteBtn:disabled {"
+		"background-color: rgb(180, 180, 180);"
+		"}"
+		"QPushButton#deleteBtn:hover:!disabled {"
+		"background-color: rgb(220, 90, 90);"
 		"}");
 
 	QVBoxLayout *rootLayout = new QVBoxLayout(this);
@@ -109,12 +132,12 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	cardLayout->setContentsMargins(28, 28, 28, 24);
 	cardLayout->setSpacing(16);
 
-	QLabel *title = new QLabel(QString::fromUtf8(u8"%1 \u7684\u5386\u53F2\u5BF9\u5C40").arg(userName), card);
+	QLabel *title = new QLabel(QString::fromUtf8(u8"%1 的历史对局").arg(userName), card);
 	title->setObjectName("title");
 	cardLayout->addWidget(title);
 
 	QLabel *subtitle = new QLabel(
-		QString::fromUtf8(u8"\u7D2F\u8BA1 %1 \u5C40 | \u6211 %2 \u80DC | AI %3 \u80DC | \u9ED8\u8BA4\u5F00\u5C40\uFF1A%4")
+		QString::fromUtf8(u8"累计 %1 局 | 我 %2 胜 | AI %3 胜 | 默认开局：%4")
 			.arg(record.games.size())
 			.arg(record.wins)
 			.arg(record.losses)
@@ -124,10 +147,15 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	subtitle->setWordWrap(true);
 	cardLayout->addWidget(subtitle);
 
-	QListWidget *historyList = new QListWidget(card);
+	// 对局列表：支持多选（ExtendedSelection = Ctrl+点击多选 / Shift+点击范围选）。
+	m_pHistoryList = new QListWidget(card);
+	m_pHistoryList->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+	// 逆序遍历：最新的对局显示在最前面，同时记录每项对应的原始索引。
 	if (record.games.isEmpty())
 	{
-		historyList->addItem(QString::fromUtf8(u8"\u6682\u65E0\u5386\u53F2\u5BF9\u5C40\u8BB0\u5F55"));
+		m_pHistoryList->addItem(QString::fromUtf8(u8"暂无历史对局记录"));
+		m_pHistoryList->setSelectionMode(QAbstractItemView::NoSelection);
 	}
 	else
 	{
@@ -135,20 +163,73 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 		{
 			const GameRecord &game = record.games[i];
 			const QString itemText = QString::fromUtf8(
-				u8"\u7B2C %1 \u5C40 | %2\n\u7ED3\u679C\uFF1A%3 | \u5148\u624B\uFF1A%4 | \u603B\u624B\u6570\uFF1A%5\n\u843D\u5B50\u9884\u89C8\uFF1A%6")
+				u8"第 %1 局 | %2\n结果：%3 | 先手：%4 | 总手数：%5\n落子预览：%6")
 				.arg(i + 1)
-				.arg(game.finishedAt.isEmpty() ? QString::fromUtf8(u8"\u65F6\u95F4\u672A\u8BB0\u5F55") : game.finishedAt)
+				.arg(game.finishedAt.isEmpty() ? QString::fromUtf8(u8"时间未记录") : game.finishedAt)
 				.arg(ResultText(game.playerWon))
 				.arg(StarterText(game.playerStarted))
 				.arg(game.moveCount)
 				.arg(MovesPreview(game.moves));
-			historyList->addItem(itemText);
+			m_pHistoryList->addItem(itemText);
+			m_gameIndices.push_back(i);
 		}
 	}
-	cardLayout->addWidget(historyList, 1);
+	cardLayout->addWidget(m_pHistoryList, 1);
 
+	// 底部按钮栏：删除按钮 + 关闭按钮。
 	QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal, card);
-	QPushButton *okButton = buttonBox->addButton(QString::fromUtf8(u8"\u5173\u95ED"), QDialogButtonBox::AcceptRole);
-	QObject::connect(okButton, &QPushButton::clicked, this, &QDialog::accept);
+
+	m_pDeleteButton = new QPushButton(QString::fromUtf8(u8"删除选中"), card);
+	m_pDeleteButton->setObjectName("deleteBtn");
+	m_pDeleteButton->setEnabled(false);
+	buttonBox->addButton(m_pDeleteButton, QDialogButtonBox::ActionRole);
+
+	QPushButton *closeButton = buttonBox->addButton(QString::fromUtf8(u8"关闭"), QDialogButtonBox::AcceptRole);
+	closeButton->setObjectName("closeBtn");
+	QObject::connect(closeButton, &QPushButton::clicked, this, &QDialog::accept);
+
 	cardLayout->addWidget(buttonBox);
+
+	// 信号连接：选择变化时更新删除按钮状态，删除按钮点击时执行删除流程。
+	connect(m_pHistoryList, &QListWidget::itemSelectionChanged, this, &HistoryDialog::onSelectionChanged);
+	connect(m_pDeleteButton, &QPushButton::clicked, this, &HistoryDialog::onDeleteClicked);
+}
+
+void HistoryDialog::onSelectionChanged()
+{
+	// 有选中项时启用删除按钮，否则禁用。
+	m_pDeleteButton->setEnabled(!m_pHistoryList->selectedItems().isEmpty());
+}
+
+void HistoryDialog::onDeleteClicked()
+{
+	// 收集所有选中项对应的原始 games 数组索引。
+	const QList<QListWidgetItem *> selected = m_pHistoryList->selectedItems();
+	if (selected.isEmpty())
+		return;
+
+	QVector<int> indices;
+	indices.reserve(selected.size());
+	for (QListWidgetItem *item : selected)
+	{
+		const int row = m_pHistoryList->row(item);
+		if (row >= 0 && row < m_gameIndices.size())
+			indices.push_back(m_gameIndices[row]);
+	}
+
+	// 弹出确认对话框，防止误删。
+	const QString msg = QString::fromUtf8(u8"确定删除选中的 %1 条对局记录？此操作不可撤销。").arg(indices.size());
+	QMessageBox::StandardButton result = QMessageBox::warning(
+		this,
+		QString::fromUtf8(u8"确认删除"),
+		msg,
+		QMessageBox::Yes | QMessageBox::No);
+
+	if (result == QMessageBox::Yes)
+	{
+		// 发出删除信号，由调用方（Backgammon）执行实际的数据删除和持久化。
+		emit deletedIndices(indices);
+		// 关闭对话框。
+		accept();
+	}
 }
