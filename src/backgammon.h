@@ -14,9 +14,13 @@ class QResizeEvent;
 class QShowEvent;
 class QGraphicsScene;
 class QGraphicsEllipseItem;
+class QGraphicsSimpleTextItem;
+class QGraphicsRectItem;
 class judgeWinner;
 class WinRateChart;
 class Evaluation;
+class QPushButton;
+class ComputerMove;
 
 class Backgammon : public QMainWindow
 {
@@ -42,6 +46,7 @@ public slots:
 	void slotDifficultyChanged(int index);
 	void slotDifficultyTextChanged(const QString &text);
 	void slotHistoryBtnClicked();
+	void slotThinkToggleClicked();
 
 private:
 	void RecordGameResult(ePiece winner);
@@ -58,6 +63,11 @@ private:
 	void PlaceAiOpeningMove();
 	void FinishRoundCleanup();
 	QString CurrentStarterPreference() const;
+
+	// 计算 Top10 候选点并绘制在棋盘上，显示每个位置的 AI 评估胜率。
+	void ComputeAndShowTop10();
+	// 清除棋盘上的 Top10 标记（半透明圆形、排名文字、胜率文字）。
+	void ClearTop10Overlay();
 
 	Ui::BackgammonClass ui;
 	ePiece m_arrBoard[15][15];
@@ -82,6 +92,13 @@ private:
 	QVector<MoveRecord> m_currentGameMoves;
 	int m_nDeep;
 	int m_nPreferredDeep;
+
+	// "AI 思考"切换按钮：按下后在棋盘上显示 AI 评估的 Top10 候选点及胜率。
+	QPushButton *m_pThinkToggleBtn;
+	// Top10 标记层的图形项（用于清除/重绘）。
+	QVector<QGraphicsItem *> m_top10Items;
+	// 是否正在显示 Top10 标记。
+	bool m_bShowTop10;
 };
 
 #endif // BACKGAMMON_H

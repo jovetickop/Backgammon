@@ -1,6 +1,5 @@
 #include "backgammon.h"
 
-#include <QComboBox>
 #include <QDateTime>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -8,7 +7,10 @@
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsEllipseItem>
 #include <QGraphicsScene>
+#include <QGraphicsSimpleTextItem>
 #include <QGraphicsView>
+#include <QGridLayout>
+#include <QFontMetrics>
 #include <QIntValidator>
 #include <QLineEdit>
 #include <QLabel>
@@ -19,7 +21,9 @@
 #include <QResizeEvent>
 #include <QShowEvent>
 #include <QVBoxLayout>
+#include <QTransform>
 #include <cmath>
+#include <tuple>
 
 #include "ComputerMove.h"
 #include "Evaluation.h"
@@ -246,6 +250,8 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_nAiWinRate(50.0)
 	, m_nDeep(8)
 	, m_nPreferredDeep(8)
+	, m_pThinkToggleBtn(0)
+	, m_bShowTop10(false)
 {
 	ui.setupUi(this);
 
@@ -277,9 +283,9 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	ui.difficultyComboBox->setCurrentIndex(3); // 默认8步
 	ui.difficultyComboBox->setCurrentText(QString::fromUtf8(u8"8 \u6B65"));
 	// 设置输入验证：只允许1-20的正整数
-	QIntValidator *validator = new QIntValidator(1, 20, this);
+	QIntValidator *validator = new QIntValidator(1, 50, this);
 	ui.difficultyComboBox->lineEdit()->setValidator(validator);
-	ui.difficultyComboBox->lineEdit()->setPlaceholderText(QString::fromUtf8(u8"\u8F93\u5165\u81EA\u5B9A\u4E49\u6B65\u6570 (1-20)"));
+	ui.difficultyComboBox->lineEdit()->setPlaceholderText(QString::fromUtf8(u8"\u8F93\u5165\u81EA\u5B9A\u4E49\u6B65\u6570 (1-50)"));
 
 	// 样式 - 复用 starterComboBox 样式，整体字体加大
 	setStyleSheet(
@@ -364,7 +370,42 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		"background: rgba(255,255,255,78);"
 		"border: 1px solid rgba(255,255,255,175);"
 		"border-radius: 18px;"
+		"}"
+		"QPushButton#thinkToggleBtn {"
+		"background-color: rgba(255,255,255,182);"
+		"border: 1px solid rgba(120,130,150,110);"
+		"border-radius: 12px;"
+		"padding: 14px 18px;"
+		"font-size: 24px;"
+		"font-weight: 600;"
+		"color: rgb(47, 58, 76);"
+		"}"
+		"QPushButton#thinkToggleBtn:hover {"
+		"background-color: rgba(255,255,255,228);"
+		"}"
+		"QPushButton#thinkToggleBtn:checked {"
+		"background-color: rgba(63,84,117,210);"
+		"color: white;"
+		"}"
+		"QPushButton#thinkToggleBtn:pressed {"
+		"background-color: rgba(236,242,249,236);"
 		"}");
+
+	// 创建"AI 思考"按钮并插入到左侧面板按钮行（row 0）。
+	// 使用 insertWidget 把按钮放在 aiInfoButton 之前（col 2 位置，原 aiInfoButton 被 push 到 col 3）。
+	m_pThinkToggleBtn = new QPushButton(QString::fromUtf8(u8"AI \u601D\u8003"), ui.left_widget);
+	m_pThinkToggleBtn->setObjectName("thinkToggleBtn");
+	m_pThinkToggleBtn->setCheckable(true);
+	m_pThinkToggleBtn->setMinimumHeight(68);
+	QGridLayout *leftLayout = qobject_cast<QGridLayout *>(ui.left_widget->layout());
+	if (leftLayout)
+	{
+		// 把 aiInfoButton 从 row 0 col 2 移走，然后把新按钮插入到 col 2。
+		leftLayout->removeWidget(ui.aiInfoButton);
+		leftLayout->addWidget(m_pThinkToggleBtn, 0, 2);
+		leftLayout->addWidget(ui.aiInfoButton, 0, 3);
+	}
+	connect(m_pThinkToggleBtn, &QPushButton::toggled, this, &Backgammon::slotThinkToggleClicked);
 
 	// 棋盘背景：浅木纹径向渐变，中心偏亮、边缘微暗，保持明亮清爽感。
 	QRadialGradient boardBg(kBoardCenter * kGridSize + 180, kBoardCenter * kGridSize - 120, 600);
@@ -536,7 +577,7 @@ void Backgammon::slotDifficultyTextChanged(const QString &text)
 	int depth = numbers.toInt(&ok);
 
 	// 验证输入：1-20之间的正整数
-	if (ok && depth >= 1 && depth <= 20)
+	if (ok && depth >= 1 && depth <= 50)
 	{
 		SetDifficulty(depth);
 	}
@@ -713,6 +754,7 @@ void Backgammon::ResetWinRateEstimate()
 	m_aiRateHistory.clear();
 	m_currentGameMoves.clear();
 	m_pLastAiPiece = 0;
+	ClearTop10Overlay();
 	UpdateStatsPanel();
 }
 
@@ -778,6 +820,10 @@ void Backgammon::UpdateWinRateEstimate(ePiece nextPiece)
 	m_playerRateHistory.push_back(m_nPlayerWinRate);
 	m_aiRateHistory.push_back(m_nAiWinRate);
 	UpdateStatsPanel();
+
+	// 如果 Top10 标记处于开启状态，每次落子后自动刷新标记。
+	if (m_bShowTop10)
+		ComputeAndShowTop10();
 }
 
 void Backgammon::UpdateBoardView()
@@ -894,4 +940,174 @@ void Backgammon::FinishRoundCleanup()
 QString Backgammon::CurrentStarterPreference() const
 {
 	return ui.starterComboBox->currentData().toString();
+}
+
+void Backgammon::slotThinkToggleClicked()
+{
+	m_bShowTop10 = m_pThinkToggleBtn->isChecked();
+	if (m_bShowTop10)
+	{
+		// 开启：计算并显示 Top10 候选点。
+		ComputeAndShowTop10();
+	}
+	else
+	{
+		// 关闭：清除棋盘上的标记。
+		ClearTop10Overlay();
+	}
+}
+
+void Backgammon::ComputeAndShowTop10()
+{
+	// 先清除旧的标记。
+	ClearTop10Overlay();
+
+	// 如果没有评估器或棋盘为空（第一手AI天元除外），不显示。
+	if (!m_pEvaluation)
+		return;
+
+	// 确定当前轮到谁走：偶数手数后轮到玩家（BLACK），奇数手数后轮到AI（WHITE）。
+	// 在显示 Top10 时，我们展示的是从当前轮次方视角看的最佳候选点。
+	const ePiece currentPiece = (m_nMoveCount % 2 == 0) ? BLACK : WHITE;
+
+	// 收集所有候选空位（八邻域有棋子的空点）。
+	QVector<std::tuple<int, int, int>> candidates; // {row, col, score}
+	for (int i = 0; i < kBoardSize; ++i)
+	{
+		for (int j = 0; j < kBoardSize; ++j)
+		{
+			if (m_arrBoard[i][j] != NONE)
+				continue;
+
+			// 候选点筛选：八邻域至少有一枚棋子，或者棋盘为空（中心点）。
+			bool hasNeighbor = false;
+			for (int di = -1; di <= 1 && !hasNeighbor; ++di)
+			{
+				for (int dj = -1; dj <= 1 && !hasNeighbor; ++dj)
+				{
+					if (di == 0 && dj == 0) continue;
+					int ni = i + di, nj = j + dj;
+					if (ni >= 0 && ni < kBoardSize && nj >= 0 && nj < kBoardSize
+						&& m_arrBoard[ni][nj] != NONE)
+					{
+						hasNeighbor = true;
+					}
+				}
+			}
+			if (!hasNeighbor && !(i == kBoardCenter && j == kBoardCenter && m_nMoveCount == 0))
+				continue;
+
+			// 计算综合评估分 = 己方增益 + 对手阻断价值（与 ComputerMove 中排序逻辑一致）。
+			const int attackScore = m_pEvaluation->EvaluateMove(m_arrBoard, i, j, currentPiece);
+			const ePiece opponent = (currentPiece == BLACK) ? WHITE : BLACK;
+			const int defenseScore = m_pEvaluation->EvaluateMove(m_arrBoard, i, j, opponent);
+			const int totalScore = attackScore + defenseScore * 2;
+			candidates.push_back({i, j, totalScore});
+		}
+	}
+
+	// 按综合分降序排列，取前 10。
+	std::sort(candidates.begin(), candidates.end(),
+		[](const std::tuple<int, int, int> &a, const std::tuple<int, int, int> &b)
+		{
+			return std::get<2>(a) > std::get<2>(b);
+		});
+
+	const int topN = qMin(5, candidates.size());
+	if (topN == 0)
+		return;
+
+	// 找出最高分和最低分（用于归一化颜色）。
+	const int maxScore = std::get<2>(candidates[0]);
+	const int minScore = std::get<2>(candidates[topN - 1]);
+	const int scoreRange = maxScore - minScore;
+
+	// 对每个 Top 候选点绘制标记：半透明圆 + 胜率。
+	// 使用 ComputerMove.MaxMinSearch 深度搜索精确评估每个候选点的胜率。
+	// 搜索深度 = 用户设置的步数 + 5，比正常AI落子多思考几步以获得更准确的胜率。
+	const int thinkDepth = m_nDeep + 5;
+	QVector<double> winRates(topN);
+	for (int rank = 0; rank < topN; ++rank)
+	{
+		const int row = std::get<0>(candidates[rank]);
+		const int col = std::get<1>(candidates[rank]);
+		// 临时落子，用 ComputerMove 搜索评估该点后续发展。
+		m_arrBoard[row][col] = currentPiece;
+		ComputerMove cm;
+		// 如果轮次方是 WHITE（AI），直接用 MaxMinSearch 评估 WHITE 视角；
+		// 如果轮次方是 BLACK（玩家），需要通过搜索 WHITE 视角取反来评估。
+		cm.MaxMinSearch(m_arrBoard, thinkDepth - 1);
+		// MaxMinSearch 搜索完毕后，用 EvaluateBoard 得到当前局面分数作为该候选点的评分。
+		const int boardScore = m_pEvaluation->EvaluateBoard(m_arrBoard);
+		m_arrBoard[row][col] = NONE;
+		const int effectiveScore = (currentPiece == WHITE) ? boardScore : -boardScore;
+		winRates[rank] = ScoreToAiWinRate(effectiveScore);
+	}
+	// 胜率归一化范围：胜率高 → normalizedRate 大 → 颜色深。
+	double maxRate = winRates[0], minRate = winRates[0];
+	for (int rank = 1; rank < topN; ++rank)
+	{
+		if (winRates[rank] > maxRate) maxRate = winRates[rank];
+		if (winRates[rank] < minRate) minRate = winRates[rank];
+	}
+	const double rateRange = maxRate - minRate;
+
+	for (int rank = 0; rank < topN; ++rank)
+	{
+		const int row = std::get<0>(candidates[rank]);
+		const int col = std::get<1>(candidates[rank]);
+		const double winRate = winRates[rank];
+
+		// 用胜率归一化控制颜色深浅：胜率越高颜色越深。
+		const double normalizedRate = (rateRange > 0)
+			? (winRate - minRate) / rateRange
+			: 1.0;
+
+		// 绘制半透明圆形标记，大小与棋子一致，覆盖在交叉点上。
+		const qreal cx = BoardToScene(row);
+		const qreal cy = BoardToScene(col);
+		const int markerRadius = kPieceRadius + 4;
+
+		QGraphicsEllipseItem *marker = m_pGraphicsScene->addEllipse(
+			cx - markerRadius, cy - markerRadius,
+			markerRadius * 2, markerRadius * 2,
+			QPen(Qt::NoPen),
+			QBrush(QColor(209, 132, 47, static_cast<int>(60 + normalizedRate * 120))));
+		m_top10Items.push_back(marker);
+
+		// 胜率数值直接放在圆圈内部居中显示（不带百分号）。
+		QString rateStr = QString::number(qRound(winRate));
+		QGraphicsSimpleTextItem *rateText = m_pGraphicsScene->addSimpleText(rateStr);
+		QFont rateFont;
+		rateFont.setPixelSize(14);
+		rateFont.setBold(true);
+		rateText->setFont(rateFont);
+		// 文字颜色：高分用深色确保可读，低分用浅色。
+		const int textAlpha = static_cast<int>(180 + normalizedRate * 75);
+		rateText->setBrush(QColor(255, 255, 255, textAlpha));
+		// 以文本包围盒的中心为原点，再平移到交叉点(cx, cy)，实现精确视觉居中。
+		QFontMetrics fm(rateFont);
+		const qreal textW = fm.horizontalAdvance(rateStr);
+		const qreal textH = fm.height();
+		const qreal origX = textW / 2.0;
+		const qreal origY = textH / 2.0 + fm.ascent() - textH; // ascent 上方偏移修正
+		QTransform t;
+		t.translate(cx - origX, cy - origY);
+		rateText->setTransform(t);
+		m_top10Items.push_back(rateText);
+	}
+}
+
+void Backgammon::ClearTop10Overlay()
+{
+	// 从场景中移除并删除所有 Top10 标记图形项。
+	for (QGraphicsItem *item : m_top10Items)
+	{
+		if (item)
+		{
+			m_pGraphicsScene->removeItem(item);
+			delete item;
+		}
+	}
+	m_top10Items.clear();
 }
