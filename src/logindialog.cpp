@@ -37,6 +37,7 @@ LoginDialog::LoginDialog(PlayerStatsStore *statsStore, QWidget *parent)
 	setWindowTitle(QString::fromUtf8(u8"登录"));
 	setFixedSize(560, 440);
 	setStyleSheet(
+		"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
 		"QDialog {"
 		"background: qradialgradient(cx:0.18, cy:0.12, radius:1.2, stop:0 rgba(255,255,255,236), stop:1 rgba(216,226,238,236));"
 		"}"

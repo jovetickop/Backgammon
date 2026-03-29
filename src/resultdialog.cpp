@@ -16,6 +16,7 @@ ResultDialog::ResultDialog(QWidget *parent, bool playerWon, int moveCount, int t
 	setWindowTitle(playerWon ? QString::fromUtf8(u8"\u672c\u5c40\u80dc\u5229") : QString::fromUtf8(u8"\u672c\u5c40\u7ed3\u675f"));
 	setFixedSize(500, 340);
 	setStyleSheet(
+		"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
 		"QDialog {"
 		"background-color: rgb(236, 241, 247);"
 		"}"

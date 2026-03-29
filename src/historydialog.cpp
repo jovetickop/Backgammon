@@ -48,6 +48,7 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	setWindowTitle(QString::fromUtf8(u8"\u5386\u53F2\u5BF9\u5C40"));
 	setMinimumSize(760, 620);
 	setStyleSheet(
+		"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
 		"QDialog {"
 		"background-color: rgb(236, 241, 247);"
 		"}"

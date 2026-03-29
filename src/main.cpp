@@ -3,10 +3,16 @@
 #include "playerstatsstore.h"
 
 #include <QtWidgets/QApplication>
+#include <QFont>
 
 int main(int argc, char *argv[])
 {
 	QApplication a(argc, argv);
+
+	// 设置全局统一字体
+	QFont defaultFont("Source Han Sans CN", 10);
+	defaultFont.setStyleStrategy(QFont::PreferOutline);
+	a.setFont(defaultFont);
 
 	PlayerStatsStore statsStore;
 	statsStore.Load();
