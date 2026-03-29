@@ -315,12 +315,12 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	const int starterIndex = m_bPlayerStarts ? 0 : 1;
 	ui.starterComboBox->setCurrentIndex(starterIndex);
 
-	// 难度设置
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u7B80\u5355"), 4);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u4E2D\u7B49"), 6);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u56F0\u96BE"), 8);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"\u8D85\u7EA7"), 10);
-	ui.difficultyComboBox->setCurrentIndex(2); // 默认困难
+	// 难度设置（搜索步数）
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"4 \u6B65"), 4);
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"6 \u6B65"), 6);
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"8 \u6B65"), 8);
+	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"10 \u6B65"), 10);
+	ui.difficultyComboBox->setCurrentIndex(2); // 默认8步
 
 	// 样式 - 复用 starterComboBox 样式
 	setStyleSheet(
