@@ -1,0 +1,16 @@
+************************************* Invoked: 周日 3月 29 16:46:54 2026
+[0] Arguments: C:\Users\11212\AppData\Local\Temp\msys2.exe, in, --confirm-infected, --confirm-self-extract, --no-shortcuts, --no-start-menu, --quiet
+[5] Operations sanity check succeeded.
+[17] Using metadata cache from "C:/Users/11212/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[17] Found 0 cached items.
+[19] Loaded control script ":/metadata/installer-config/control_js.js"
+[19] No target directory specified, using default value: ""
+[19] Warning: The installation path cannot be empty, please specify a valid directory.
+************************************* Invoked: 周日 3月 29 16:47:33 2026
+[0] Arguments: C:\Users\11212\AppData\Local\Temp\msys2.exe, install, --help-all
+[2] Operations sanity check succeeded.
+[10] Using metadata cache from "C:/Users/11212/AppData/Local/cache\\qt-installer-framework\\d75f1c19-3379-3717-ae8d-1404b51494a9"
+[10] Found 0 cached items.
+[12] Loaded control script ":/metadata/installer-config/control_js.js"
+[12] No target directory specified, using default value: ""
+[12] Warning: The installation path cannot be empty, please specify a valid directory.

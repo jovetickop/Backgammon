@@ -1,13 +1,22 @@
 # 项目上下文
 
-当前项目以 `ty-qt-ai-plugin` 的“已有工程接入模式”运行。
+当前项目以 `ty-qt-ai-plugin` 的”已有工程接入模式”运行。
 
 ## 1. 自动识别命令（setup MUST 填写）
 
-- 配置命令：`cmake -S . -B build`（已存在 build 目录，无需重新配置）
+- 配置命令：
+  ```bash
+  cmake -S . -B build -G “MinGW Makefiles” -DCMAKE_PREFIX_PATH=”C:/msys64/ucrt64” -DCMAKE_CXX_COMPILER=”C:/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/g++.exe”
+  ```
 - 构建命令：`cmake --build build --config Debug`
-- 测试命令：`ctest --test-dir build -C Debug --output-on-failure`
-- 运行命令：`./build/Backgammon.exe`
+- 测试/运行命令（需要设置 PATH）：
+  ```bash
+  export PATH=”/c/msys64/ucrt64/bin:/c/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin:$PATH”
+  ctest --test-dir build --output-on-failure
+  ./build/Backgammon.exe
+  ```
+- Qt 版本：Qt5 (msys2 ucrt64)
+- C++ 标准：C++17
 
 要求：
 
@@ -79,7 +88,14 @@ git push
 - 当前 Qt 版本与模块
 - 推荐的构建命令与测试命令
 
-## 7. 不可跳过的工作流
+## 7. 环境依赖
+
+- MSYS2 安装路径：`C:/msys64`
+- Qt5 路径：`C:/msys64/ucrt64`
+- 编译器路径：`C:/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/g++.exe`
+- 运行前需设置 PATH
+
+## 8. 不可跳过的工作流
 
 - 先依据 PRD 执行 `plan`
 - 每次只推进一个 harness 任务
@@ -87,6 +103,6 @@ git push
 - 及时更新 `.claude/harness/features.json` 与 `.claude/harness/claude-progress.txt`
 - 每次状态流转后自动更新 `docs/reports/<任务编号>-任务描述.md`
 
-## 8. 受保护区域
+## 9. 受保护区域
 
 除非当前任务明确要求，否则不要重构现有源码树和目录布局。

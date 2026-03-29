@@ -4,8 +4,8 @@
         {
             "label": "编译项目",
             "type": "shell",
-            "command": "c:/code/Backgammon/build.bat",
-            "args": ["-buildDir", "build3", "-config", "Release"],
+            "command": "cmake",
+            "args": ["--build", "build", "--config", "Debug"],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -15,8 +15,11 @@
         {
             "label": "运行测试",
             "type": "shell",
-            "command": "c:/code/Backgammon/build3/TestUnit.exe",
-            "group": "test"
+            "command": "c:/code/Backgammon/build/TestUnit.exe",
+            "group": "test",
+            "env": {
+                "PATH": "C:/msys64/ucrt64/bin;C:/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin;${env:PATH}"
+            }
         }
     ]
 }

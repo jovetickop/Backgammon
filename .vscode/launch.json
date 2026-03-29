@@ -5,14 +5,14 @@
             "name": "调试运行",
             "type": "cppdbg",
             "request": "launch",
-            "program": "c:/code/Backgammon/build3/Backgammon.exe",
+            "program": "c:/code/Backgammon/build/Backgammon.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "c:/code/Backgammon",
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin;${env:PATH}"
+                    "value": "C:/msys64/ucrt64/bin;C:/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin;${env:PATH}"
                 }
             ],
             "console": "integratedTerminal",
