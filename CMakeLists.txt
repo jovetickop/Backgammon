@@ -13,8 +13,8 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 # 同时支持 Qt5 和 Qt6。
-find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets Test)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Test)
+find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Quick Test)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Quick QuickControls2 Test)
 
 # 启用测试
 enable_testing()
@@ -76,8 +76,8 @@ add_executable(Backgammon WIN32
     ${BACKGAMMON_RESOURCES}
 )
 
-# 链接 Qt Widgets。
-target_link_libraries(Backgammon PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+# 链接 Qt Quick。
+target_link_libraries(Backgammon PRIVATE Qt${QT_VERSION_MAJOR}::Quick Qt${QT_VERSION_MAJOR}::QuickControls2)
 
 # 简单的单元测试（使用GoogleTest）
 include(FetchContent)
@@ -118,7 +118,7 @@ target_include_directories(TestUnit PRIVATE
 target_link_libraries(TestUnit PRIVATE
     gtest
     Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Quick
 )
 
 # 注册测试
