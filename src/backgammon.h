@@ -48,7 +48,8 @@ private:
 	void PersistPlayerRecord();
 	void ResetWinRateEstimate();
 	void UpdateStatsPanel();
-	void UpdateWinRateEstimate();
+	// 更新胜率估算：nextPiece 表示即将落子的棋子（即当前轮到谁走）。
+	void UpdateWinRateEstimate(ePiece nextPiece);
 	void UpdateBoardView();
 	void SetLastAiPiece(QGraphicsEllipseItem *piece);
 	void AppendMove(int row, int col, ePiece piece);

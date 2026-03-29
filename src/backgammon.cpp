@@ -51,20 +51,18 @@ namespace
 		return static_cast<int>(std::lround(pos / kGridSize)) + kBoardCenter;
 	}
 
+	// 将启发式评估分数映射为 AI 胜率(0~100)。
+	// 使用 S 型曲线(tanh)而非对数压缩，确保：
+	// - 活四/冲四等关键棋型能产生接近 0%/100% 的极端胜率
+	// - 散子堆积不会轻易掩盖对方的高价值棋型
 	double ScoreToAiWinRate(int score)
 	{
-		const double maxScore = static_cast<double>(FIVE);
-		double boundedScore = score;
-		if (boundedScore > maxScore)
-			boundedScore = maxScore;
-		if (boundedScore < -maxScore)
-			boundedScore = -maxScore;
-
-		const double normalized = boundedScore == 0.0
-			? 0.0
-			: std::log10(std::fabs(boundedScore) + 1.0) / std::log10(maxScore + 1.0);
-		const double offset = normalized * 49.0;
-		return 50.0 + (boundedScore > 0.0 ? offset : -offset);
+		// 缩放因子：控制曲线陡峭程度。
+		// OPEN_FOUR(1000000) 应映射到 ~5% 以下，所以 k 取较小值让大分数快速饱和。
+		const double k = 0.00005;
+		const double rate = std::tanh(score * k);
+		// tanh 输出 [-1, 1]，映射到 [2, 98] 避免极端值。
+		return 50.0 + rate * 48.0;
 	}
 
 	QString StarterText(bool playerStarts)
@@ -598,7 +596,8 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 	}
 
 	PlacePlayerMove(row, col);
-	UpdateWinRateEstimate();
+	// 玩家刚走完，接下来轮到 AI 落子。
+	UpdateWinRateEstimate(WHITE);
 
 	if (m_pJugdeWinner->IsWon(BLACK, m_arrBoard))
 	{
@@ -615,7 +614,8 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 	delete pComputerMove;
 
 	PlaceAiMove(aiRow, aiCol);
-	UpdateWinRateEstimate();
+	// AI 刚走完，接下来轮到玩家落子。
+	UpdateWinRateEstimate(BLACK);
 
 	if (m_pJugdeWinner->IsWon(WHITE, m_arrBoard))
 	{
@@ -719,7 +719,7 @@ void Backgammon::UpdateStatsPanel()
 		m_pWinRateChart->SetSeries(m_playerRateHistory, m_aiRateHistory);
 }
 
-void Backgammon::UpdateWinRateEstimate()
+void Backgammon::UpdateWinRateEstimate(ePiece nextPiece)
 {
 	if (!m_pEvaluation)
 		return;
@@ -733,6 +733,18 @@ void Backgammon::UpdateWinRateEstimate()
 	{
 		m_nAiWinRate = 0.0;
 		m_nPlayerWinRate = 100.0;
+	}
+	// 关键修复：检查即将落子的轮次方是否已经有冲四/活四（一步即可五连）。
+	// 轮次方拥有必赢棋型时，胜率应接近 100%，因为对方无法同时封堵两端。
+	else if (nextPiece == BLACK && m_pEvaluation->HasWinningMove(m_arrBoard, BLACK))
+	{
+		m_nAiWinRate = 0.0;
+		m_nPlayerWinRate = 100.0;
+	}
+	else if (nextPiece == WHITE && m_pEvaluation->HasWinningMove(m_arrBoard, WHITE))
+	{
+		m_nAiWinRate = 100.0;
+		m_nPlayerWinRate = 0.0;
 	}
 	else
 	{
@@ -808,7 +820,8 @@ void Backgammon::PlacePlayerMove(int row, int col)
 void Backgammon::PlaceAiOpeningMove()
 {
 	PlaceAiMove(kBoardCenter, kBoardCenter);
-	UpdateWinRateEstimate();
+	// 重置时不需指定轮次方（初始状态 50/50）。
+	UpdateWinRateEstimate(NONE);
 }
 
 void Backgammon::FinishRoundCleanup()
