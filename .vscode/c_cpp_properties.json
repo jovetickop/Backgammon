@@ -4,12 +4,16 @@
             "name": "Win32 (Qt5 MinGW)",
             "includePath": [
                 "${workspaceFolder}/src",
-                "c:/code/Backgammon/tools/msys64/msys64/ucrt64/include/**"
+                "${workspaceFolder}/tests",
+                "c:/code/Backgammon/tools/msys64/msys64/ucrt64/include/**",
+                "c:/code/Backgammon/tools/msys64/msys64/ucrt64/include/qt5/**",
+                "c:/code/Backgammon/tools/msys64/msys64/ucrt64/include/qt5/QtTest"
             ],
             "defines": [
                 "_DEBUG",
                 "UNICODE",
-                "_UNICODE"
+                "_UNICODE",
+                "QT_TEST_LIB"
             ],
             "compilerPath": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin/g++.exe",
             "cStandard": "c11",

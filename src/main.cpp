@@ -9,9 +9,10 @@ int main(int argc, char *argv[])
 {
 	QApplication a(argc, argv);
 
-	// 设置全局统一字体
-	QFont defaultFont("Source Han Sans CN", 10);
-	defaultFont.setStyleStrategy(QFont::PreferOutline);
+	// 设置全局统一字体，使用抗锯齿渲染策略提高清晰度
+	// 优先使用微软雅黑，其次尝试系统默认
+	QFont defaultFont("Microsoft YaHei", 10);
+	defaultFont.setStyleStrategy(QFont::PreferAntialias);
 	a.setFont(defaultFont);
 
 	PlayerStatsStore statsStore;

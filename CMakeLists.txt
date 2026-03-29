@@ -84,6 +84,7 @@ set(UNIT_TEST_SOURCES
     src/types.h
     src/judgeWinner.cpp
     src/Evaluation.cpp
+    src/playerstatsstore.cpp
 )
 
 add_executable(TestUnit ${UNIT_TEST_SOURCES})
@@ -91,10 +92,11 @@ target_include_directories(TestUnit PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${gtest_SOURCE_DIR}/include
 )
+# 测试文件自带 main()，链接 gtest（不含 gtest_main）
 target_link_libraries(TestUnit PRIVATE
-    gtest_main
-    Qt5::Core
-    Qt5::Widgets
+    gtest
+    Qt${QT_VERSION_MAJOR}::Core
+    Qt${QT_VERSION_MAJOR}::Widgets
 )
 
 # 注册测试

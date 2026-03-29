@@ -1,4 +1,8 @@
 {
+    // VSCode 终端字体设置
+    "terminal.integrated.fontFamily": "Consolas",
+    "terminal.integrated.fontSize": 14,
+
     // CMake 配置
     "cmake.configureOnOpen": true,
     "cmake.buildDirectory": "${workspaceFolder}/build",
@@ -21,5 +25,26 @@
                 "value": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin;${env:PATH}"
             }
         ]
-    }
+    },
+
+    // 禁用 CMake Tools 自动生成 c_cpp_properties.json
+    "cmake.configureOnEdit": false,
+
+    // C/C++ 扩展配置 - 覆盖 IntelliSense
+    "C_Cpp.default.configurationProvider": "",
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/tests",
+        "c:/code/Backgammon/tools/msys64/msys64/ucrt64/include/**",
+        "c:/code/Backgammon/tools/msys64/msys64/ucrt64/include/qt5/**"
+    ],
+    "C_Cpp.default.defines": [
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE",
+        "QT_TEST_LIB"
+    ],
+    "C_Cpp.default.compilerPath": "c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin/g++.exe",
+    "C_Cpp.default.cppStandard": "c++11",
+    "C_Cpp.default.intelliSenseMode": "gcc-x64"
 }
