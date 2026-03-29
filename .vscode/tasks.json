@@ -4,16 +4,19 @@
         {
             "label": "编译项目",
             "type": "shell",
-            "command": "cmake",
-            "args": [
-                "--build", "c:/code/Backgammon/build",
-                "--config", "Debug"
-            ],
+            "command": "c:/code/Backgammon/build.bat",
+            "args": ["-config", "Release"],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
             "problemMatcher": ["$gcc"]
+        },
+        {
+            "label": "运行测试",
+            "type": "shell",
+            "command": "c:/code/Backgammon/build/TestUnit.exe",
+            "group": "test"
         }
     ]
 }

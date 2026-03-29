@@ -63,6 +63,7 @@
 ## 项目结构
 
 - `src/`：核心源码（UI、AI、胜负判断）
+- `tests/`：单元测试（使用GoogleTest）
 - `CMakeLists.txt`：CMake 构建入口（支持 Qt5/Qt6）
 - `build.bat`：一键编译脚本
 - `run.bat`：一键运行脚本
@@ -101,6 +102,36 @@ run.bat -buildIfMissing -config Release
 cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=g++
 cmake --build build --config Release
 ```
+
+## 单元测试
+
+项目使用 **GoogleTest** 框架进行单元测试。
+
+### 运行测试
+
+```bat
+cmake --build build --target TestUnit
+build\TestUnit.exe
+```
+
+或使用 CTest：
+
+```bat
+ctest --test-dir build --output-on-failure
+```
+
+### 测试覆盖
+
+- `types.h`：棋子枚举值、评分枚举关系
+- `judgeWinner`：胜负判断（横/竖/斜连五）
+- `Evaluation`：局面评估（空盘、黑优、白优、五连）
+
+### 新增功能测试
+
+每次新增功能后：
+1. 在 `tests/test_unit.cpp` 中添加对应的测试函数
+2. 运行 `TestUnit.exe` 验证通过
+3. 确认无误后再提交代码
 
 ## 说明
 

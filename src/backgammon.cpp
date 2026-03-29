@@ -534,7 +534,6 @@ void Backgammon::SetDifficulty(int depth)
 {
 	m_nDeep = depth;
 	m_nPreferredDeep = depth;
-	ShowAiLogicDialog(this, m_nDeep);
 }
 
 void Backgammon::slotDifficultyTextChanged(const QString &text)
