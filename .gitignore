@@ -22,3 +22,4 @@ build.ninja
 # 本地缓存
 .cache/
 .vscode/changelists.json
+.claude/settings.local.json

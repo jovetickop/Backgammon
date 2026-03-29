@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake -G \"MinGW Makefiles\" -B build -DCMAKE_PREFIX_PATH=\"c:/code/Backgammon/tools/msys64/msys64/ucrt64\" -DCMAKE_CXX_COMPILER=\"C:/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/g++.exe\")",
+      "Bash(git clone:*)",
+      "Read(//c/code/zen2api/**)",
+      "Bash(where bun:*)",
+      "Bash(npm --version)",
+      "Bash(ls c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin/gdb*)",
+      "Read(//c/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/**)"
+    ]
+  }
+}
