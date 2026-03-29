@@ -22,7 +22,7 @@ public:
 	void MaxMinSearch(ePiece (&arrBoard)[15][15], int deep);
 
 private:
-	// 生成候选落子点（靠近已有棋子的位置）。
+	// 生成候选落子点（靠近已有棋子的位置），按评估分降序排列以优化搜索效率。
 	QVector<QVector<int>> GenCandidator(ePiece (&arrBoard)[15][15], ePiece piece);
 
 	// 搜索树最小层（对手回合）。

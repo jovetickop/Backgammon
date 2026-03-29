@@ -1,5 +1,6 @@
 ﻿#include "ComputerMove.h"
 #include <QRandomGenerator>
+#include <algorithm>
 #include "judgeWinner.h"
 #include "Evaluation.h"
 
@@ -38,6 +39,7 @@ void ComputerMove::Computer_1(ePiece (&arrBoard)[15][15])
 	}
 }
 
+// 生成候选落子点：空位且八邻域至少有一枚棋子（无排序，轻量级）。
 QVector<QVector<int>> ComputerMove::GenCandidator(ePiece (&arrBoard)[15][15], ePiece piece)
 {
 	QVector<QVector<int>> vecSum;
@@ -71,7 +73,66 @@ QVector<QVector<int>> ComputerMove::GenCandidator(ePiece (&arrBoard)[15][15], eP
 
 void ComputerMove::MaxMinSearch(ePiece (&arrBoard)[15][15], int deep)
 {
+	// 紧急防守：如果对手已有活四/冲四，必须立即封堵（否则下一步就输了）。
+	if (m_pEvalution->HasWinningMove(arrBoard, BLACK))
+	{
+		// 遍历所有空位，找到唯一能让对手四连无法五连的位置。
+		// 对于冲四（一端封堵），封堵点就是开口端。
+		// 对于活四（两端开口），无法封堵，只能尝试自己进攻。
+		for (int i = 0; i < 15; ++i)
+		{
+			for (int j = 0; j < 15; ++j)
+			{
+				if (arrBoard[i][j] != NONE)
+					continue;
+				// 临时落子，检查是否消除了对手的必赢局面。
+				arrBoard[i][j] = WHITE;
+				if (!m_pEvalution->HasWinningMove(arrBoard, BLACK))
+				{
+					arrBoard[i][j] = NONE;
+					x = i;
+					y = j;
+					return;
+				}
+				arrBoard[i][j] = NONE;
+			}
+		}
+		// 活四无法封堵，继续正常搜索（自己进攻争取平局）。
+	}
+
+	// 如果自己已有必赢棋型（冲四/活四），直接走能五连的位置。
+	if (m_pEvalution->HasWinningMove(arrBoard, WHITE))
+	{
+		for (int i = 0; i < 15; ++i)
+		{
+			for (int j = 0; j < 15; ++j)
+			{
+				if (arrBoard[i][j] != NONE)
+					continue;
+				arrBoard[i][j] = WHITE;
+				bool won = m_pJudgeWinner->IsWon(WHITE, arrBoard);
+				arrBoard[i][j] = NONE;
+				if (won)
+				{
+					x = i;
+					y = j;
+					return;
+				}
+			}
+		}
+	}
+
 	QVector<QVector<int>> vecCandidator = GenCandidator(arrBoard, WHITE);
+
+	// 轻量排序：按到棋盘中心的距离升序，让 alpha-beta 剪枝先搜中心附近的点。
+	// 中心附近通常价值更高（星位、天元），且计算成本极低（仅需一次减法）。
+	std::sort(vecCandidator.begin(), vecCandidator.end(),
+		[](const QVector<int> &a, const QVector<int> &b)
+		{
+			const int da = (a[0] - 7) * (a[0] - 7) + (a[1] - 7) * (a[1] - 7);
+			const int db = (b[0] - 7) * (b[0] - 7) + (b[1] - 7) * (b[1] - 7);
+			return da < db;
+		});
 
 	QVector<QVector<int>> vecBestPoints;
 	int nBestScore = 0x8fffffff;
