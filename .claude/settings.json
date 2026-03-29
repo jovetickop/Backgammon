@@ -16,7 +16,10 @@
       "Bash(\"C:/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/cmake.exe\" -S . -B build)",
       "Bash(cmake -S . -B build)",
       "Read(//c/Users/11212/.claude/rules/cpp/**)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(mkdir -p c:/Users/11212/tools)",
+      "Bash(mv c:/code/Backgammon/tools/msys64 c:/Users/11212/tools/)",
+      "Bash(mv c:/code/Backgammon/tools/msys2-base-x86_64-20260322.tar.xz c:/Users/11212/tools/)"
     ],
     "additionalDirectories": [
       "C:\\Users\\11212\\.claude\\rules\\common",
