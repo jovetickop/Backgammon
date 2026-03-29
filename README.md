@@ -95,9 +95,17 @@ src/
 ├── winratechart.cpp/h     # 胜率曲线图绘制
 ├── historydialog.cpp/h    # 历史对局对话框（支持多选删除）
 ├── resultdialog.cpp/h     # 对局结果对话框
-└── types.h                # 类型定义
+├── types.h                # 类型定义
+├── domain/               # DDD 领域层（2025年重构）
+│   ├── values/            # 值对象：Position, Piece, Move, GameResult
+│   ├── aggregates/       # 聚合根：GameBoard
+│   └── services/         # 领域服务：WinDetector, BoardEvaluator, AIEngine
+└── application/          # DDD 应用层：GameService
 tests/                     # 单元测试（GoogleTest）
-CMakeLists.txt             # CMake 构建入口（支持 Qt5/Qt6）
+docs/
+├── DDD_ARCHITECTURE.md       # DDD 架构设计文档
+└── CPP11_TO_CPP20_UPGRADE.md # C++11 到 C++20 升级指南
+CMakeLists.txt             # CMake 构建入口（支持 Qt5/Qt6，C++20）
 build.bat                  # 一键编译脚本
 run.bat                    # 一键运行脚本
 DEVELOPMENT.md             # 面向后续开发者的详细开发说明

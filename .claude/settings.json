@@ -7,7 +7,21 @@
       "Bash(where bun:*)",
       "Bash(npm --version)",
       "Bash(ls c:/code/Backgammon/tools/msys64/msys64/ucrt64/bin/gdb*)",
-      "Read(//c/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/**)"
+      "Read(//c/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/**)",
+      "Read(//c/Users/11212/AppData/**)",
+      "Bash(cmake --build build --config Debug)",
+      "Bash(python .claude/harness/show-status.py)",
+      "Bash(Get-Content .claude/harness/claude-progress.txt -Tail 10 -Encoding UTF8)",
+      "Bash(where cmake:*)",
+      "Bash(\"C:/Users/11212/AppData/Local/Microsoft/WinGet/Packages/BrechtSanders.WinLibs.POSIX.UCRT_Microsoft.Winget.Source_8wekyb3d8bbwe/mingw64/bin/cmake.exe\" -S . -B build)",
+      "Bash(cmake -S . -B build)",
+      "Read(//c/Users/11212/.claude/rules/cpp/**)",
+      "Bash(git add:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\11212\\.claude\\rules\\common",
+      "C:\\Users\\11212\\.claude\\rules\\cpp",
+      "C:\\Users\\11212\\.claude\\projects\\c--code-Backgammon\\memory"
     ]
   }
 }

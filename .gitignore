@@ -1,17 +1,24 @@
 ﻿# 构建输出目录
 /build/
+/build3/
 /build-fast/
 
 # 工具链目录
 /tools/
 
+# CMake 第三方依赖目录
+_deps/
+
 # CMake/Ninja 生成文件（缓存）
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
+Makefile
 build.ninja
 .ninja_deps
 .ninja_log
+CTestTestfile.cmake
+Testing/
 
 # Windows IDE 缓存与用户文件
 *.sdf
@@ -23,3 +30,15 @@ build.ninja
 .cache/
 .vscode/changelists.json
 .claude/settings.local.json
+
+# 可执行文件（构建产物）
+*.exe
+*.dll
+*.so
+*.dylib
+
+# MOC 自动生成文件
+*_autogen/
+moc_*.cpp
+qrc_*.cpp
+ui_*.h

@@ -2,9 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 
 project(BackgammonQt LANGUAGES CXX)
 
-# 保持与原工程一致的 C++ 标准。
-set(CMAKE_CXX_STANDARD 11)
+# 升级到 C++20 标准以支持现代C++特性。
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # 启用 Qt 自动代码生成。
 set(CMAKE_AUTOMOC ON)
@@ -30,6 +31,13 @@ set(BACKGAMMON_SOURCES
     src/playerstatsstore.cpp
     src/resultdialog.cpp
     src/winratechart.cpp
+    # DDD 领域层
+    src/domain/aggregates/game_board.cpp
+    src/domain/services/win_detector.cpp
+    src/domain/services/board_evaluator.cpp
+    src/domain/services/ai_engine.cpp
+    # DDD 应用层
+    src/application/game_service.cpp
 )
 
 set(BACKGAMMON_HEADERS
@@ -43,6 +51,13 @@ set(BACKGAMMON_HEADERS
     src/resultdialog.h
     src/types.h
     src/winratechart.h
+    # DDD 领域层头文件
+    src/domain/domain.h
+    src/domain/values/values.h
+    src/domain/aggregates/aggregates.h
+    src/domain/services/services.h
+    # DDD 应用层头文件
+    src/application/application.h
 )
 
 set(BACKGAMMON_FORMS
@@ -85,6 +100,13 @@ set(UNIT_TEST_SOURCES
     src/judgeWinner.cpp
     src/Evaluation.cpp
     src/playerstatsstore.cpp
+    src/ComputerMove.cpp
+    # DDD 领域层
+    src/domain/aggregates/game_board.cpp
+    src/domain/services/win_detector.cpp
+    src/domain/services/board_evaluator.cpp
+    src/domain/services/ai_engine.cpp
+    src/application/game_service.cpp
 )
 
 add_executable(TestUnit ${UNIT_TEST_SOURCES})

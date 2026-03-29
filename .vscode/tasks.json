@@ -5,7 +5,7 @@
             "label": "编译项目",
             "type": "shell",
             "command": "c:/code/Backgammon/build.bat",
-            "args": ["-config", "Release"],
+            "args": ["-buildDir", "build3", "-config", "Release"],
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -15,7 +15,7 @@
         {
             "label": "运行测试",
             "type": "shell",
-            "command": "c:/code/Backgammon/build/TestUnit.exe",
+            "command": "c:/code/Backgammon/build3/TestUnit.exe",
             "group": "test"
         }
     ]
