@@ -9,6 +9,8 @@
 #include <QGraphicsEllipseItem>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QIntValidator>
+#include <QLineEdit>
 #include <QLabel>
 #include <QMessageBox>
 #include <QMouseEvent>
@@ -315,7 +317,8 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	const int starterIndex = m_bPlayerStarts ? 0 : 1;
 	ui.starterComboBox->setCurrentIndex(starterIndex);
 
-	// 难度设置（搜索步数）
+	// 难度设置（搜索步数）- 可编辑下拉框支持自定义步数
+	ui.difficultyComboBox->setEditable(true);
 	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"2 \u6B65"), 2);
 	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"4 \u6B65"), 4);
 	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"6 \u6B65"), 6);
@@ -324,6 +327,11 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"12 \u6B65"), 12);
 	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"14 \u6B65"), 14);
 	ui.difficultyComboBox->setCurrentIndex(3); // 默认8步
+	ui.difficultyComboBox->setCurrentText(QString::fromUtf8(u8"8 \u6B65"));
+	// 设置输入验证：只允许1-20的正整数
+	QIntValidator *validator = new QIntValidator(1, 20, this);
+	ui.difficultyComboBox->lineEdit()->setValidator(validator);
+	ui.difficultyComboBox->lineEdit()->setPlaceholderText(QString::fromUtf8(u8"\u8F93\u5165\u81EA\u5B9A\u4E49\u6B65\u6570 (1-20)"));
 
 	// 样式 - 复用 starterComboBox 样式
 	setStyleSheet(
@@ -444,6 +452,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	connect(ui.historyButton, SIGNAL(clicked()), this, SLOT(slotHistoryBtnClicked()));
 	connect(ui.starterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotStarterChanged(int)));
 	connect(ui.difficultyComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotDifficultyChanged(int)));
+	connect(ui.difficultyComboBox, SIGNAL(currentTextChanged(QString)), this, SLOT(slotDifficultyTextChanged(QString)));
 	connect(ui.aiInfoButton, &QPushButton::clicked, this, [this]() { ShowAiLogicDialog(this, m_nDeep); });
 	ui.startButton->setChecked(false);
 	m_pJugdeWinner = new judgeWinner();
@@ -526,6 +535,20 @@ void Backgammon::SetDifficulty(int depth)
 	m_nDeep = depth;
 	m_nPreferredDeep = depth;
 	ShowAiLogicDialog(this, m_nDeep);
+}
+
+void Backgammon::slotDifficultyTextChanged(const QString &text)
+{
+	// 从文本中提取数字
+	const QString numbers = text.trimmed();
+	bool ok = false;
+	int depth = numbers.toInt(&ok);
+
+	// 验证输入：1-20之间的正整数
+	if (ok && depth >= 1 && depth <= 20)
+	{
+		SetDifficulty(depth);
+	}
 }
 
 void Backgammon::slotHistoryBtnClicked()

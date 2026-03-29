@@ -40,6 +40,7 @@ public slots:
 	void slotStartBtnClicked();
 	void slotStarterChanged(int index);
 	void slotDifficultyChanged(int index);
+	void slotDifficultyTextChanged(const QString &text);
 	void slotHistoryBtnClicked();
 
 private:
