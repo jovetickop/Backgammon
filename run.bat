@@ -49,7 +49,7 @@ goto :usage
 set "SCRIPT_DIR=%~dp0"
 if "%SCRIPT_DIR:~-1%"=="\" set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 set "BUILD_PATH=%SCRIPT_DIR%\%BUILD_DIR%"
-set "LOCAL_UCRT_BIN=%SCRIPT_DIR%\tools\msys64\msys64\ucrt64\bin"
+set "LOCAL_UCRT_BIN=C:\msys64\ucrt64\bin"
 set "EXE=%BUILD_PATH%\Backgammon.exe"
 if not exist "%EXE%" set "EXE=%BUILD_PATH%\%CONFIG%\Backgammon.exe"
 
