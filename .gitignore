@@ -6,6 +6,12 @@
 # 工具链目录
 /tools/
 
+# Python 缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyc
+
 # CMake 第三方依赖目录
 _deps/
 
