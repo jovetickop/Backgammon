@@ -7,30 +7,28 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# 设置 Qt5 路径
+set(CMAKE_PREFIX_PATH "C:/msys64/ucrt64")
+
 # 启用 Qt 自动代码生成。
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-# 优先使用 Qt5
-find_package(QT NAMES Qt5 REQUIRED COMPONENTS Widgets Test)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Test)
+# 强制使用 Qt5 Quick
+find_package(Qt5 REQUIRED COMPONENTS Quick QuickControls2 Test)
 
 # 启用测试
 enable_testing()
 
-# 核心源码。
+# 核心源码 - 移除旧的 Widgets UI，只保留业务逻辑
 set(BACKGAMMON_SOURCES
     src/main.cpp
-    src/backgammon.cpp
+    src/gamebridge.cpp
     src/ComputerMove.cpp
     src/Evaluation.cpp
     src/judgeWinner.cpp
-    src/historydialog.cpp
-    src/logindialog.cpp
     src/playerstatsstore.cpp
-    src/resultdialog.cpp
-    src/winratechart.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
     src/domain/services/win_detector.cpp
@@ -41,16 +39,12 @@ set(BACKGAMMON_SOURCES
 )
 
 set(BACKGAMMON_HEADERS
-    src/backgammon.h
+    src/gamebridge.h
     src/ComputerMove.h
     src/Evaluation.h
     src/judgeWinner.h
-    src/historydialog.h
-    src/logindialog.h
     src/playerstatsstore.h
-    src/resultdialog.h
     src/types.h
-    src/winratechart.h
     # DDD 领域层头文件
     src/domain/domain.h
     src/domain/values/values.h
@@ -60,24 +54,31 @@ set(BACKGAMMON_HEADERS
     src/application/application.h
 )
 
-set(BACKGAMMON_FORMS
-    src/backgammon.ui
+# QML 文件
+set(BACKGAMMON_QML
+    qml/GameUI.qml
+    qml/BoardView.qml
+    qml/ControlPanel.qml
+    qml/WinRateChart.qml
+    qml/ResultDialog.qml
 )
 
-set(BACKGAMMON_RESOURCES
-    src/backgammon.qrc
-)
-
-# 生成 Windows GUI 程序。
+# 生成 Windows GUI 程序
 add_executable(Backgammon WIN32
     ${BACKGAMMON_SOURCES}
     ${BACKGAMMON_HEADERS}
-    ${BACKGAMMON_FORMS}
-    ${BACKGAMMON_RESOURCES}
 )
 
-# 链接 Qt Widgets。
-target_link_libraries(Backgammon PRIVATE Qt${QT_VERSION_MAJOR}::Widgets)
+# 复制 QML 文件到构建目录
+file(COPY ${BACKGAMMON_QML} DESTINATION ${CMAKE_BINARY_DIR}/qml)
+
+# 链接 Qt5 Quick
+target_link_libraries(Backgammon PRIVATE
+    Qt5::Quick
+    Qt5::QuickControls2
+    Qt5::Core
+    Qt5::Gui
+)
 
 # 简单的单元测试（使用GoogleTest）
 include(FetchContent)
@@ -117,8 +118,8 @@ target_include_directories(TestUnit PRIVATE
 # 测试文件自带 main()，链接 gtest（不含 gtest_main）
 target_link_libraries(TestUnit PRIVATE
     gtest
-    Qt${QT_VERSION_MAJOR}::Core
-    Qt${QT_VERSION_MAJOR}::Widgets
+    Qt5::Core
+    Qt5::Quick
 )
 
 # 注册测试
