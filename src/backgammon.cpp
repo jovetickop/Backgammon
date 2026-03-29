@@ -416,7 +416,12 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		"border-radius: 18px;"
 		"}");
 
-	ui.graphicsView->setBackgroundBrush(QColor(230, 196, 143, 225));
+	// 棋盘背景：木纹径向渐变，中心偏亮、边缘偏暗，模拟木质纹理。
+	QRadialGradient boardBg(kBoardCenter * kGridSize + 180, kBoardCenter * kGridSize - 120, 600);
+	boardBg.setColorAt(0.0, QColor(222, 184, 135));
+	boardBg.setColorAt(0.5, QColor(210, 170, 120));
+	boardBg.setColorAt(1.0, QColor(185, 145, 100));
+	ui.graphicsView->setBackgroundBrush(QBrush(boardBg));
 	ui.graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	ui.graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 	ui.graphicsView->setRenderHint(QPainter::Antialiasing);
@@ -465,13 +470,52 @@ Backgammon::~Backgammon()
 
 void Backgammon::DrawBoard()
 {
-	QPen gridPen(QColor(82, 56, 32, 185));
-	gridPen.setWidth(2);
+	// 棋盘外框：深色边框带阴影，模拟木质边框的立体感。
+	QPen borderPen(QColor(60, 40, 20, 200));
+	borderPen.setWidth(3);
+	const int borderOffset = 8;
+	m_pGraphicsScene->addRect(
+		kLineMin - borderOffset, kLineMin - borderOffset,
+		(kLineMax - kLineMin) + 2 * borderOffset,
+		(kLineMax - kLineMin) + 2 * borderOffset,
+		borderPen, QBrush(QColor(140, 100, 55, 60)));
+
+	// 网格线：深色主线+浅色偏移线模拟刻痕凹凸效果。
+	QPen gridLine(QColor(60, 40, 18, 160));
+	gridLine.setWidth(1);
+	// 浅色偏移线（模拟光线从刻痕侧面反射）。
+	QPen gridHighlight(QColor(120, 90, 50, 80));
+	gridHighlight.setWidth(1);
+
 	for (int i = 0; i < kBoardSize; ++i)
 	{
 		const int coord = BoardToScene(i);
-		m_pGraphicsScene->addLine(kLineMin, coord, kLineMax, coord, gridPen);
-		m_pGraphicsScene->addLine(coord, kLineMin, coord, kLineMax, gridPen);
+		// 主网格线。
+		m_pGraphicsScene->addLine(kLineMin, coord, kLineMax, coord, gridLine);
+		m_pGraphicsScene->addLine(coord, kLineMin, coord, kLineMax, gridLine);
+		// 凹陷高光线（向右下偏移1像素）。
+		m_pGraphicsScene->addLine(kLineMin + 1, coord + 1, kLineMax + 1, coord + 1, gridHighlight);
+		m_pGraphicsScene->addLine(coord + 1, kLineMin + 1, coord + 1, kLineMax + 1, gridHighlight);
+	}
+
+	// 星位点（天元和四个角星）：径向渐变模拟立体圆点。
+	const int starPoints[][2] = {
+		{7, 7},   // 天元
+		{3, 3}, {3, 11}, {11, 3}, {11, 11}  // 四角星位
+	};
+	const int starRadius = 5;
+	for (int i = 0; i < 5; ++i)
+	{
+		const int cx = BoardToScene(starPoints[i][0]);
+		const int cy = BoardToScene(starPoints[i][1]);
+		// 径向渐变：左上高光、右下暗影。
+		QRadialGradient starGrad(cx - 1, cy - 1, starRadius);
+		starGrad.setColorAt(0.0, QColor(80, 55, 25));
+		starGrad.setColorAt(1.0, QColor(50, 35, 15));
+		m_pGraphicsScene->addEllipse(
+			cx - starRadius, cy - starRadius,
+			starRadius * 2, starRadius * 2,
+			QPen(Qt::NoPen), QBrush(starGrad));
 	}
 }
 
@@ -773,20 +817,36 @@ void Backgammon::UpdateBoardView()
 
 void Backgammon::SetLastAiPiece(QGraphicsEllipseItem *piece)
 {
+	// 恢复上一颗 AI 棋子的原始 3D 白色外观。
 	if (m_pLastAiPiece)
 	{
-		m_pLastAiPiece->setBrush(QColor(Qt::white));
-		m_pLastAiPiece->setPen(QPen(Qt::NoPen));
+		QRectF rect = m_pLastAiPiece->rect();
+		const qreal cx = rect.x() + rect.width() / 2.0 - 6;
+		const qreal cy = rect.y() + rect.height() / 2.0 - 6;
+		QRadialGradient whiteGrad(cx, cy, kPieceRadius);
+		whiteGrad.setColorAt(0.0, QColor(255, 255, 255));
+		whiteGrad.setColorAt(0.6, QColor(235, 235, 235));
+		whiteGrad.setColorAt(0.85, QColor(200, 200, 200));
+		whiteGrad.setColorAt(1.0, QColor(160, 160, 160));
+		m_pLastAiPiece->setBrush(QBrush(whiteGrad));
+		m_pLastAiPiece->setPen(QPen(QColor(140, 140, 140, 120), 1));
 	}
 
 	m_pLastAiPiece = piece;
 	if (!m_pLastAiPiece)
 		return;
 
-	QPen highlightPen(QColor(214, 170, 92, 220));
-	highlightPen.setWidth(3);
-	m_pLastAiPiece->setBrush(QColor(255, 249, 228));
-	m_pLastAiPiece->setPen(highlightPen);
+	// 高亮样式：暖色径向渐变+金色边框，模拟光晕效果。
+	QRectF rect = m_pLastAiPiece->rect();
+	const qreal cx = rect.x() + rect.width() / 2.0 - 6;
+	const qreal cy = rect.y() + rect.height() / 2.0 - 6;
+	QRadialGradient hlGrad(cx, cy, kPieceRadius);
+	hlGrad.setColorAt(0.0, QColor(255, 252, 240));
+	hlGrad.setColorAt(0.5, QColor(250, 240, 210));
+	hlGrad.setColorAt(0.85, QColor(230, 210, 160));
+	hlGrad.setColorAt(1.0, QColor(200, 175, 120));
+	m_pLastAiPiece->setBrush(QBrush(hlGrad));
+	m_pLastAiPiece->setPen(QPen(QColor(210, 170, 80, 200), 2));
 }
 
 void Backgammon::AppendMove(int row, int col, ePiece piece)
@@ -803,7 +863,17 @@ void Backgammon::PlaceAiMove(int row, int col)
 	m_arrBoard[row][col] = WHITE;
 	const int x = BoardToScene(row) - kPieceRadius;
 	const int y = BoardToScene(col) - kPieceRadius;
-	QGraphicsEllipseItem *aiPiece = m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::white));
+	// 白子 3D 效果：径向渐变模拟球体光照（左上高光→右下暗影）。
+	const qreal cx = x + kPieceRadius - 6;
+	const qreal cy = y + kPieceRadius - 6;
+	QRadialGradient whiteGrad(cx, cy, kPieceRadius);
+	whiteGrad.setColorAt(0.0, QColor(255, 255, 255));
+	whiteGrad.setColorAt(0.6, QColor(235, 235, 235));
+	whiteGrad.setColorAt(0.85, QColor(200, 200, 200));
+	whiteGrad.setColorAt(1.0, QColor(160, 160, 160));
+	QGraphicsEllipseItem *aiPiece = m_pGraphicsScene->addEllipse(
+		x, y, kPieceSize, kPieceSize,
+		QPen(QColor(140, 140, 140, 120), 1), QBrush(whiteGrad));
 	SetLastAiPiece(aiPiece);
 	AppendMove(row, col, WHITE);
 }
@@ -813,7 +883,17 @@ void Backgammon::PlacePlayerMove(int row, int col)
 	m_arrBoard[row][col] = BLACK;
 	const int x = BoardToScene(row) - kPieceRadius;
 	const int y = BoardToScene(col) - kPieceRadius;
-	m_pGraphicsScene->addEllipse(x, y, kPieceSize, kPieceSize, QPen(Qt::NoPen), QColor(Qt::black));
+	// 黑子 3D 效果：径向渐变模拟球体光照（左上微光→右下深黑）。
+	const qreal cx = x + kPieceRadius - 6;
+	const qreal cy = y + kPieceRadius - 6;
+	QRadialGradient blackGrad(cx, cy, kPieceRadius);
+	blackGrad.setColorAt(0.0, QColor(90, 90, 90));
+	blackGrad.setColorAt(0.5, QColor(50, 50, 50));
+	blackGrad.setColorAt(0.85, QColor(25, 25, 25));
+	blackGrad.setColorAt(1.0, QColor(10, 10, 10));
+	m_pGraphicsScene->addEllipse(
+		x, y, kPieceSize, kPieceSize,
+		QPen(QColor(5, 5, 5, 80), 1), QBrush(blackGrad));
 	AppendMove(row, col, BLACK);
 }
 

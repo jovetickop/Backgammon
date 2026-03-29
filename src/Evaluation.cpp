@@ -202,6 +202,136 @@ static bool LineHasWinningMove(const ePiece line[], int len, ePiece piece)
 	return false;
 }
 
+// 在滑窗大小为5的范围内检查某个棋子是否出现。
+static bool WindowContains(const ePiece line[], int start, int end, ePiece piece)
+{
+	for (int i = start; i < end; ++i)
+	{
+		if (line[i] == piece)
+			return true;
+	}
+	return false;
+}
+
+// 检测一条线段上的活三（连续三子两端开口）或跳活三（三子中有间隔但填充后可成活四）。
+// 返回该线段上活三的"关键进攻位置"数量（每个活三的开口端 + 间隔位置）。
+// 返回值 -1 表示该线段上无活三。
+static int LineOpenThreeKeys(const ePiece line[], int len, ePiece piece, const ePiece opponent, QVector<QVector<int>> &allKeys)
+{
+	int found = 0;
+	for (int pos = 0; pos < len - 4; ++pos)
+	{
+		// 在 pos~pos+4 的5子窗口中统计己方棋子数和对手棋子数。
+		int own = 0, opp = 0;
+		int ownPos[5]; // 己方棋子在窗口内的索引
+		for (int k = 0; k < 5; ++k)
+		{
+			if (line[pos + k] == piece)
+			{
+				ownPos[own] = pos + k;
+				++own;
+			}
+			else if (line[pos + k] == opponent)
+			{
+				++opp;
+			}
+		}
+		// 活三条件：恰好3己方、0对手，且有2个空位可作为开口。
+		if (own != 3 || opp != 0)
+			continue;
+
+		// 收集关键位置（空位）。
+		QVector<int> keys;
+		for (int k = 0; k < 5; ++k)
+		{
+			if (line[pos + k] == NONE)
+				keys.push_back(pos + k);
+		}
+
+		// 窗口边界外再确认两端至少各有一个空位（否则不是真正的活三）。
+		bool leftOk = (pos > 0 && line[pos - 1] == NONE) || keys.contains(pos);
+		bool rightOk = (pos + 4 < len - 1 && line[pos + 5] == NONE) || keys.contains(pos + 4);
+
+		// 只要窗口外端有空位或者端点本身是关键位置，就形成活三。
+		// 简化判断：窗口内3子+2空=活三模式，关键位置就是这2个空位。
+		// 如果端点也在边界处且被堵住，该活三价值降低，但仍需防守。
+		if (leftOk || rightOk)
+		{
+			allKeys.push_back(keys);
+			found += keys.size(); // 关键位置数（通常为2）
+		}
+	}
+	return found;
+}
+
+int Evaluation::CountOpenThrees(ePiece (&arrBoard)[15][15], ePiece piece)
+{
+	ePiece line[15];
+	const ePiece opponent = (piece == BLACK) ? WHITE : BLACK;
+	QVector<QVector<int>> allKeys;
+	int totalKeys = 0;
+
+	// 横向扫描。
+	for (int j = 0; j < 15; ++j)
+	{
+		for (int i = 0; i < 15; ++i)
+			line[i] = arrBoard[i][j];
+		totalKeys += LineOpenThreeKeys(line, 15, piece, opponent, allKeys);
+	}
+	// 纵向扫描。
+	for (int j = 0; j < 15; ++j)
+	{
+		for (int i = 0; i < 15; ++i)
+			line[i] = arrBoard[j][i];
+		totalKeys += LineOpenThreeKeys(line, 15, piece, opponent, allKeys);
+	}
+	// 左上到右下对角线扫描。
+	for (int j = 14; j >= 0; --j)
+	{
+		int len = 15 - j;
+		for (int k = 0; k < len; ++k)
+			line[k] = arrBoard[k][j + k];
+		if (len >= 5)
+			totalKeys += LineOpenThreeKeys(line, len, piece, opponent, allKeys);
+	}
+	for (int i = 1; i < 15; ++i)
+	{
+		int len = 15 - i;
+		for (int k = 0; k < len; ++k)
+			line[k] = arrBoard[i + k][k];
+		if (len >= 5)
+			totalKeys += LineOpenThreeKeys(line, len, piece, opponent, allKeys);
+	}
+	// 右上到左下对角线扫描。
+	for (int j = 14; j >= 0; --j)
+	{
+		int len = 15 - j;
+		for (int k = 0; k < len; ++k)
+			line[k] = arrBoard[14 - k][j + k];
+		if (len >= 5)
+			totalKeys += LineOpenThreeKeys(line, len, piece, opponent, allKeys);
+	}
+	for (int i = 13; i >= 0; --i)
+	{
+		int len = i + 1;
+		for (int k = 0; k < len; ++k)
+			line[k] = arrBoard[i - k][k];
+		if (len >= 5)
+			totalKeys += LineOpenThreeKeys(line, len, piece, opponent, allKeys);
+	}
+
+	return (totalKeys > 0) ? totalKeys : -1;
+}
+
+int Evaluation::EvaluateMove(ePiece (&arrBoard)[15][15], int row, int col, ePiece piece)
+{
+	// 临时落子，评估该位置对 piece 的增益分值。
+	arrBoard[row][col] = piece;
+	const int score = EvaluateBoard(arrBoard);
+	arrBoard[row][col] = NONE;
+	return score;
+}
+
 bool Evaluation::HasWinningMove(ePiece (&arrBoard)[15][15], ePiece piece)
 {
 	ePiece line[15];
