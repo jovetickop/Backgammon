@@ -3,47 +3,48 @@
 #include <QObject>
 #include <QVector>
 #include <QPoint>
-#include <QQmlEngine>
 
 /**
- * GameBridge - QML 与 C++ 业务逻辑的桥接类
- * 负责将游戏核心逻辑暴露给 QML 界面
+ * GameBridge - Qt Widgets 与 C++ 业务逻辑的桥接类
+ * 负责将游戏核心逻辑暴露给 UI 层
  */
 class GameBridge : public QObject
 {
     Q_OBJECT
-    QML_ELEMENT
 
 public:
     explicit GameBridge(QObject *parent = nullptr);
     ~GameBridge() = default;
 
     // 游戏控制
-    Q_INVOKABLE void startGame();
-    Q_INVOKABLE void resetGame();
+    void startGame();
+    void resetGame();
 
     // 设置
-    Q_INVOKABLE void setPlayerStarts(bool playerStarts);
-    Q_INVOKABLE void setDifficulty(int depth);
-    Q_INVOKABLE void setShowTop10(bool show);
+    void setPlayerStarts(bool playerStarts);
+    void setDifficulty(int depth);
+    void setShowTop10(bool show);
 
     // 玩家落子
-    Q_INVOKABLE void handlePlayerMove(int row, int col);
+    void handlePlayerMove(int row, int col);
 
     // 对话框
-    Q_INVOKABLE void showHistory();
-    Q_INVOKABLE void showAiInfo();
+    void showHistory();
+    void showAiInfo();
 
-    // 获取数据（供 QML 调用）
-    Q_INVOKABLE int getMoveCount();
-    Q_INVOKABLE int getPlayerWinRate();
-    Q_INVOKABLE int getAiWinRate();
-    Q_INVOKABLE QVariantList getPlayerRateHistory();
-    Q_INVOKABLE QVariantList getAiRateHistory();
-    Q_INVOKABLE QVariantList getHighlightPositions();
+    // 获取数据
+    int getMoveCount();
+    int getPlayerWinRate();
+    int getAiWinRate();
+    QVariantList getPlayerRateHistory();
+    QVariantList getAiRateHistory();
+    QVariantList getHighlightPositions();
 
     // 设置获胜连线
-    Q_INVOKABLE void setHighlightPositions(const QVector<QPoint> &positions);
+    void setHighlightPositions(const QVector<QPoint> &positions);
+
+    // 获取棋盘数据
+    const int (*getBoard())[15] { return m_board; }
 
 signals:
     // 游戏状态变化信号

@@ -15,15 +15,20 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-# 强制使用 Qt5 Quick
-find_package(Qt5 REQUIRED COMPONENTS Quick QuickControls2 Test)
+# 强制使用 Qt5 Widgets
+find_package(Qt5 REQUIRED COMPONENTS Widgets Test)
 
 # 启用测试
 enable_testing()
 
-# 核心源码 - 移除旧的 Widgets UI，只保留业务逻辑
+# 核心源码 - Qt Widgets UI
 set(BACKGAMMON_SOURCES
     src/main.cpp
+    src/backgammon.cpp
+    src/logindialog.cpp
+    src/historydialog.cpp
+    src/resultdialog.cpp
+    src/winratechart.cpp
     src/gamebridge.cpp
     src/ComputerMove.cpp
     src/Evaluation.cpp
@@ -39,6 +44,11 @@ set(BACKGAMMON_SOURCES
 )
 
 set(BACKGAMMON_HEADERS
+    src/backgammon.h
+    src/logindialog.h
+    src/historydialog.h
+    src/resultdialog.h
+    src/winratechart.h
     src/gamebridge.h
     src/ComputerMove.h
     src/Evaluation.h
@@ -54,28 +64,27 @@ set(BACKGAMMON_HEADERS
     src/application/application.h
 )
 
-# QML 文件
-set(BACKGAMMON_QML
-    qml/GameUI.qml
-    qml/BoardView.qml
-    qml/ControlPanel.qml
-    qml/WinRateChart.qml
-    qml/ResultDialog.qml
+# UI 文件
+set(BACKGAMMON_UI
+    src/backgammon.ui
+)
+
+# 资源文件
+set(BACKGAMMON_RESOURCES
+    src/backgammon.qrc
 )
 
 # 生成 Windows GUI 程序
 add_executable(Backgammon WIN32
     ${BACKGAMMON_SOURCES}
     ${BACKGAMMON_HEADERS}
+    ${BACKGAMMON_UI}
+    ${BACKGAMMON_RESOURCES}
 )
 
-# 复制 QML 文件到构建目录
-file(COPY ${BACKGAMMON_QML} DESTINATION ${CMAKE_BINARY_DIR}/qml)
-
-# 链接 Qt5 Quick
+# 链接 Qt5 Widgets
 target_link_libraries(Backgammon PRIVATE
-    Qt5::Quick
-    Qt5::QuickControls2
+    Qt5::Widgets
     Qt5::Core
     Qt5::Gui
 )
@@ -119,7 +128,7 @@ target_include_directories(TestUnit PRIVATE
 target_link_libraries(TestUnit PRIVATE
     gtest
     Qt5::Core
-    Qt5::Quick
+    Qt5::Widgets
 )
 
 # 注册测试

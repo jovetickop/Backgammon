@@ -1,1 +1,2 @@
 2026-03-06 00:00:00 | init | 已创建 harness，当前尚未开始任何任务。
+2026-03-30 00:00:00 | T001 | 初始化主窗口骨架 - 已删除任务记录：创建了完整的 QML 界面文件（GameUI.qml, BoardView.qml, ControlPanel.qml, WinRateChart.qml, ResultDialog.qml, HistoryDialog.qml），构建成功，单元测试通过。

@@ -1,0 +1,10 @@
+{
+  "type": "chat.send",
+  "payload": {
+    "conversationId": "01KMZ6J8VQX7QQCTBFS74Z4AEW",
+    "mentionIds": ["01J00000000000000000000000"],
+    "senderId": "01KMZ6S13GV7QKPNTBXZKKXS5R",
+    "text": "已恢复 QWidget 界面！\n\n从 `feature/qml-ui` 分支恢复了完整的 Qt Widgets 界面代码：\n- backgammon.ui / backgammon.cpp / backgammon.h\n- logindialog.ui / logindialog.cpp / logindialog.h\n- historydialog.cpp / historydialog.h\n- resultdialog.cpp / resultdialog.h\n- winratechart.cpp / winratechart.h\n\n构建和测试均通过 ✓\n\n现在可以运行：\n```powershell\n.\\run.bat -config Debug\n```",
+    "workspacePath": "C:\\code\\Backgammon"
+  }
+}

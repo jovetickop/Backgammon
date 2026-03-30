@@ -1,0 +1,304 @@
+{
+  "dispatchMessagePrefixRules": {
+    "assistant": [
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-assistant-collaboration-supervisor",
+        "prefix": "完成supervisor的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向supervisor汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Complete the supervisor's request. [[cmd key=\"use_roadmap_skill\"]] Inspect unfinished tasks and direct all idle members in the working channel to continue. If the task is finished, you may only report to the supervisor. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "完成supervisor的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向supervisor汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "supervisor"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-assistant-collaboration-owner",
+        "prefix": "完成owner的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Complete the owner's request. [[cmd key=\"use_roadmap_skill\"]] Inspect unfinished tasks and direct all idle members in the working channel to continue. If the task is finished, you may only report to the owner. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "完成owner的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "owner"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-assistant-collaboration-admin",
+        "prefix": "完成admin的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向admin汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Complete the admin's request. [[cmd key=\"use_roadmap_skill\"]] Inspect unfinished tasks and direct all idle members in the working channel to continue. If the task is finished, you may only report to the admin. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "完成admin的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向admin汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "admin"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-assistant-collaboration-assistant",
+        "prefix": "完成assistant的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向assistant汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Complete the assistant's request. [[cmd key=\"use_roadmap_skill\"]] Inspect unfinished tasks and direct all idle members in the working channel to continue. If the task is finished, you may only report to the assistant. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "完成assistant的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥工作频道全部空闲的member继续完成；若已完成，仅允许向assistant汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "assistant"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-assistant-collaboration-member",
+        "prefix": "先审核当前任务完成情况；若未完成，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥当前汇报的member继续完成；若已完成，仅允许向supervisor或者owner汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Review the current task status first. If it is unfinished, use [[cmd key=\"use_roadmap_skill\"]] to inspect unfinished tasks and direct all idle members in the working channel to continue. If it is finished, you may only report to the supervisor or owner. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "先审核当前任务完成情况；若未完成，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指挥当前汇报的member继续完成；若已完成，仅允许向supervisor或者owner汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "member"
+        ],
+        "skillPaths": []
+      }
+    ],
+    "member": [
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-member-collaboration-all",
+        "prefix": "[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "[[cmd key=\"use_chat_skill\"]].",
+          "zh": "[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "owner",
+          "admin",
+          "assistant",
+          "supervisor",
+          "member"
+        ],
+        "skillPaths": []
+      }
+    ],
+    "supervisor": [
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-supervisor-collaboration-owner",
+        "prefix": "完成owner的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，优先指挥全部空闲的assistant完成任务，若当前频道没有assistant，指挥全部空闲的member完成任务；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Complete the owner's request. [[cmd key=\"use_roadmap_skill\"]] Inspect unfinished tasks and prioritize directing all idle assistants to continue. If there is no assistant in the current channel, direct all idle members instead. If the task is finished, you may only report to the owner. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "完成owner的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，优先指挥全部空闲的assistant完成任务，若当前频道没有assistant，指挥全部空闲的member完成任务；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "owner"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-supervisor-collaboration-admin",
+        "prefix": "完成admin的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，优先指挥全部空闲的assistant完成任务，若当前频道没有assistant，指挥全部空闲的member完成任务；若已完成，仅允许向admin汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Complete the admin's request. [[cmd key=\"use_roadmap_skill\"]] Inspect unfinished tasks and prioritize directing all idle assistants to continue. If there is no assistant in the current channel, direct all idle members instead. If the task is finished, you may only report to the admin. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "完成admin的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，优先指挥全部空闲的assistant完成任务，若当前频道没有assistant，指挥全部空闲的member完成任务；若已完成，仅允许向admin汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "admin"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-supervisor-collaboration-supervisor",
+        "prefix": "协调supervisor的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，优先指挥全部空闲的assistant完成任务，若当前频道没有assistant，指挥全部空闲的member完成任务；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Coordinate the supervisor's request. [[cmd key=\"use_roadmap_skill\"]] Inspect unfinished tasks and prioritize directing all idle assistants to continue. If there is no assistant in the current channel, direct all idle members instead. If the task is finished, you may only report to the owner. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "协调supervisor的要求，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，优先指挥全部空闲的assistant完成任务，若当前频道没有assistant，指挥全部空闲的member完成任务；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "supervisor"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-supervisor-collaboration-assistant",
+        "prefix": "先审核当前任务完成情况；若未完成，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指导assistant继续完成；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Review the current task status first. If it is unfinished, use [[cmd key=\"use_roadmap_skill\"]] to inspect unfinished tasks and guide the assistant to continue. If the task is finished, you may only report to the owner. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "先审核当前任务完成情况；若未完成，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指导assistant继续完成；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "assistant"
+        ],
+        "skillPaths": []
+      },
+      {
+        "channelIds": [],
+        "collaborationMode": "collaboration",
+        "id": "dispatch-prefix-default-supervisor-collaboration-member",
+        "prefix": "先审核当前任务完成情况；若未完成，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指导空闲的member继续完成；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。",
+        "prefixByLanguage": {
+          "en": "Review the current task status first. If it is unfinished, use [[cmd key=\"use_roadmap_skill\"]] to inspect unfinished tasks and guide an idle member to continue. If the task is finished, you may only report to the owner. [[cmd key=\"use_chat_skill\"]].",
+          "zh": "先审核当前任务完成情况；若未完成，[[cmd key=\"use_roadmap_skill\"]] 查看未完成任务，指导空闲的member继续完成；若已完成，仅允许向owner汇报。[[cmd key=\"use_chat_skill\"]]。"
+        },
+        "senderMemberIds": [],
+        "senderRoles": [
+          "member"
+        ],
+        "skillPaths": []
+      }
+    ]
+  },
+  "inviteOnboardingPromptTemplates": {},
+  "inviteSkillSelections": {
+    "assistant": [
+      "\\\\?\\C:\\Users\\11212\\AppData\\Roaming\\com.golutra\\skills\\project-development-quality-maintainability"
+    ],
+    "member": [
+      "C:\\Users\\11212\\AppData\\Roaming\\com.golutra\\skills\\project-development-quality-maintainability"
+    ],
+    "supervisor": []
+  },
+  "memberSequence": {},
+  "members": [
+    {
+      "autoStartTerminal": false,
+      "avatar": "css:anime-10014",
+      "id": "01J00000000000000000000000",
+      "name": "群主",
+      "role": "",
+      "roleKey": "members.roles.owner",
+      "roleType": "owner",
+      "status": "online"
+    },
+    {
+      "autoStartTerminal": true,
+      "avatar": "css:realistic-7",
+      "collaborationMode": true,
+      "id": "01KMZ6S13GV7QKPNTBXZKKXS5R",
+      "name": "前端开发",
+      "role": "",
+      "roleKey": "members.roles.member",
+      "roleType": "member",
+      "sandboxed": false,
+      "skillPaths": [
+        "C:\\Users\\11212\\AppData\\Roaming\\com.golutra\\skills\\project-development-quality-maintainability"
+      ],
+      "status": "online",
+      "terminalCommand": "claude",
+      "terminalType": "claude",
+      "unlimitedAccess": true
+    },
+    {
+      "autoStartTerminal": true,
+      "avatar": "css:realistic-4",
+      "collaborationMode": true,
+      "id": "01KMZ6SY24HT8G8V5B4SD0T925",
+      "name": "后端开发",
+      "role": "",
+      "roleKey": "members.roles.member",
+      "roleType": "member",
+      "sandboxed": false,
+      "skillPaths": [
+        "C:\\Users\\11212\\AppData\\Roaming\\com.golutra\\skills\\project-development-quality-maintainability"
+      ],
+      "status": "online",
+      "terminalCommand": "claude",
+      "terminalType": "claude",
+      "unlimitedAccess": true
+    },
+    {
+      "autoStartTerminal": true,
+      "avatar": "/avatar-presets/supervisor/supervisor-default.gif",
+      "collaborationMode": true,
+      "id": "01KMZ7ENWWC3VY8V779XYA4QMS",
+      "name": "项目经理",
+      "role": "",
+      "roleKey": "members.roles.supervisor",
+      "roleType": "supervisor",
+      "sandboxed": false,
+      "status": "online",
+      "terminalCommand": "claude",
+      "terminalType": "claude",
+      "unlimitedAccess": true
+    },
+    {
+      "autoStartTerminal": true,
+      "avatar": "css:realistic-10",
+      "collaborationMode": true,
+      "id": "01KMZ82R7RPDJWN9FBNHXJHPZV",
+      "manualStatus": "online",
+      "name": "产品经理",
+      "role": "",
+      "roleKey": "members.roles.member",
+      "roleType": "member",
+      "sandboxed": false,
+      "skillPaths": [
+        "C:\\Users\\11212\\AppData\\Roaming\\com.golutra\\skills\\project-development-quality-maintainability"
+      ],
+      "status": "online",
+      "terminalCommand": "claude",
+      "terminalType": "claude",
+      "unlimitedAccess": true
+    },
+    {
+      "autoStartTerminal": true,
+      "avatar": "css:realistic-6",
+      "collaborationMode": true,
+      "id": "01KMZ85WG529QRWAWCPRK1G32N",
+      "name": "软件测试",
+      "role": "",
+      "roleKey": "members.roles.member",
+      "roleType": "member",
+      "sandboxed": false,
+      "skillPaths": [
+        "C:\\Users\\11212\\AppData\\Roaming\\com.golutra\\skills\\project-development-quality-maintainability"
+      ],
+      "status": "online",
+      "terminalCommand": "claude",
+      "terminalType": "claude",
+      "unlimitedAccess": true
+    }
+  ],
+  "projectId": "93693f4195f35451e1f7d1af541f69a4ed8c1b40fc0a828d52915e535866f980",
+  "terminal": {
+    "recentClosedTabs": [
+      {
+        "closedAt": 1774870595703,
+        "memberId": "01KMZ85WG529QRWAWCPRK1G32N"
+      },
+      {
+        "closedAt": 1774870595702,
+        "memberId": "01KMZ6SY24HT8G8V5B4SD0T925"
+      }
+    ]
+  },
+  "version": 1
+}
