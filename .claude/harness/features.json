@@ -157,7 +157,7 @@
     \"test_command\": \"cmake --build build && ctest --test-dir build --output-on-failure\",
     \"depends_on\": [\"T005\"],
     \"priority\": 2,
-    \"status\": \"pending\"
+    \"status\": \"passed\"
   },
   {
     \"id\": \"T012\",
@@ -232,7 +232,7 @@
     \"test_command\": \"cmake --build build && ctest --test-dir build --output-on-failure\",
     \"depends_on\": [\"T015\"],
     \"priority\": 3,
-    \"status\": \"pending\"
+    \"status\": \"passed\"
   },
   {
     \"id\": \"T017\",
@@ -248,7 +248,7 @@
     \"test_command\": \"cmake --build build && ctest --test-dir build --output-on-failure\",
     \"depends_on\": [\"T002\"],
     \"priority\": 3,
-    \"status\": \"pending\"
+    \"status\": \"passed\"
   },
   {
     \"id\": \"T018\",
@@ -308,7 +308,7 @@
     \"test_command\": \"cmake --build build && ctest --test-dir build --output-on-failure\",
     \"depends_on\": [\"T002\"],
     \"priority\": 4,
-    \"status\": \"pending\"
+    \"status\": \"passed\"
   },
   {
     \"id\": \"T022\",

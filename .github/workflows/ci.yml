@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-qt5-base
+            mingw-w64-ucrt-x86_64-qt5-multimedia
+            mingw-w64-ucrt-x86_64-qt5-declarative
+            mingw-w64-ucrt-x86_64-qt5-network
+            mingw-w64-ucrt-x86_64-qt5-sql
+
+      - name: 配置 CMake
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_PREFIX_PATH=/ucrt64 \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: 构建
+        shell: msys2 {0}
+        run: cmake --build build --config Release
+
+      - name: 运行测试
+        shell: msys2 {0}
+        run: ctest --test-dir build --output-on-failure -C Release
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: Backgammon-${{ github.sha }}
+          path: build/Backgammon.exe
+          if-no-files-found: warn
