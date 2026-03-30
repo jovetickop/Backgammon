@@ -4,10 +4,14 @@
 #include <QtWidgets/QMainWindow>
 #include <QString>
 #include <QVector>
+#include <QSettings>
 
 #include "playerstatsstore.h"
 #include "ui_backgammon.h"
 #include "types.h"
+#include "domain/services/win_detector.h"
+#include "domain/services/board_evaluator.h"
+#include "domain/services/ai_engine.h"
 
 class QMouseEvent;
 class QResizeEvent;
@@ -16,11 +20,10 @@ class QGraphicsScene;
 class QGraphicsEllipseItem;
 class QGraphicsSimpleTextItem;
 class QGraphicsRectItem;
-class judgeWinner;
 class WinRateChart;
-class Evaluation;
 class QPushButton;
-class ComputerMove;
+class AiWorker;
+class QThread;
 
 class Backgammon : public QMainWindow
 {
@@ -36,6 +39,7 @@ public:
 	void showEvent(QShowEvent *event);
 	void resizeEvent(QResizeEvent *event);
 	void CleanBoard();
+	void closeEvent(QCloseEvent *event) override;
 
 	int CurrentDifficulty() const;
 	void SetDifficulty(int depth);
@@ -48,6 +52,10 @@ public slots:
 	void slotHistoryBtnClicked();
 	void slotUndoBtnClicked();
 	void slotThinkToggleClicked();
+	// 接收「提示」按钮点击事件，切换 Top3 提示标记的显示/隐藏
+	void slotHintBtnClicked(bool checked);
+	// 接收 AiWorker 计算完成的落点
+	void slotAiMoveReady(int row, int col);
 
 private:
 	void RecordGameResult(ePiece winner);
@@ -69,6 +77,10 @@ private:
 	void ComputeAndShowTop10();
 	// 清除棋盘上的 Top10 标记（半透明圆形、排名文字、胜率文字）。
 	void ClearTop10Overlay();
+	// 计算玩家视角 Top3 推荐落点并绘制提示标记。
+	void ComputeAndShowHint();
+	// 清除棋盘上的 Top3 提示标记。
+	void ClearHintOverlay();
 
 	Ui::BackgammonClass ui;
 	ePiece m_arrBoard[15][15];
@@ -81,8 +93,9 @@ private:
 	bool m_bStarted;
 	bool m_bPlayerStarts;
 	bool m_bPvPMode;  // 鍙屼汉瀵规垬妯″紡
-	judgeWinner* m_pJugdeWinner;
-	Evaluation *m_pEvaluation;
+	game_core::WinDetector m_winDetector;
+	game_core::BoardEvaluator m_boardEvaluator;
+	game_core::AIEngine m_aiEngine;
 	int m_nPlayerWins;
 	int m_nAiWins;
 	int m_nFinishedGames;
@@ -101,6 +114,23 @@ private:
 	QVector<QGraphicsItem *> m_top10Items;
 	// 是否正在显示 Top10 标记。
 	bool m_bShowTop10;
+
+	// 「提示」按钮：点击后显示玩家视角 Top3 推荐落点。
+	QPushButton *m_pHintBtn;
+	// Top3 提示标记层的图形项（用于清除）。
+	QVector<QGraphicsItem *> m_hintItems;
+	// 是否正在显示提示标记。
+	bool m_bHintVisible;
+
+	// AI 异步计算线程和 Worker。
+	QThread *m_pAiThread;
+	AiWorker *m_pAiWorker;
+	// 是否正在等待 AI 计算完成。
+	bool m_bAiThinking;
+
+	// 悔棋计数：当前局已悔棋次数 / 每局最大悔棋次数。
+	int m_nUndoCount;
+	int m_nMaxUndoCount;
 };
 
 #endif // BACKGAMMON_H

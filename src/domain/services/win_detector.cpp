@@ -3,22 +3,20 @@
 namespace game_core {
 
 bool WinDetector::checkWin(const GameBoard& board, Piece piece) {
-    // 获取最后落子位置
-    const Position& last_pos = board.lastMove();
-
-    // 如果棋盘为空，直接返回false
-    if (!last_pos.isValid()) {
-        return false;
+    // 全棋盘扫描，支持任意棋盘状态（非单步增量）
+    const auto& arr = board.board();
+    for (int r = 0; r < GameBoard::BOARD_SIZE; ++r) {
+        for (int c = 0; c < GameBoard::BOARD_SIZE; ++c) {
+            if (arr[r][c] == piece) {
+                if (checkHorizontal(board, piece, r, c) ||
+                    checkVertical(board, piece, r, c) ||
+                    checkDiagonalLeft(board, piece, r, c) ||
+                    checkDiagonalRight(board, piece, r, c))
+                    return true;
+            }
+        }
     }
-
-    int row = last_pos.row();
-    int col = last_pos.col();
-
-    // 四个方向检测
-    return checkHorizontal(board, piece, row, col) ||
-           checkVertical(board, piece, row, col) ||
-           checkDiagonalLeft(board, piece, row, col) ||
-           checkDiagonalRight(board, piece, row, col);
+    return false;
 }
 
 Piece WinDetector::checkWinner(const GameBoard& board) {

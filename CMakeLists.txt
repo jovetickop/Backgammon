@@ -28,11 +28,10 @@ set(BACKGAMMON_SOURCES
     src/logindialog.cpp
     src/historydialog.cpp
     src/resultdialog.cpp
+    src/replaydialog.cpp
     src/winratechart.cpp
     src/gamebridge.cpp
-    src/ComputerMove.cpp
-    src/Evaluation.cpp
-    src/judgeWinner.cpp
+    src/AiWorker.cpp
     src/playerstatsstore.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
@@ -48,11 +47,9 @@ set(BACKGAMMON_HEADERS
     src/logindialog.h
     src/historydialog.h
     src/resultdialog.h
+    src/replaydialog.h
     src/winratechart.h
     src/gamebridge.h
-    src/ComputerMove.h
-    src/Evaluation.h
-    src/judgeWinner.h
     src/playerstatsstore.h
     src/types.h
     # DDD 领域层头文件
@@ -107,10 +104,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(UNIT_TEST_SOURCES
     tests/test_unit.cpp
     src/types.h
-    src/judgeWinner.cpp
-    src/Evaluation.cpp
     src/playerstatsstore.cpp
-    src/ComputerMove.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
     src/domain/services/win_detector.cpp

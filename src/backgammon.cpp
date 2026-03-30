@@ -18,17 +18,20 @@
 #include <QMouseEvent>
 #include <QPen>
 #include <QPushButton>
+#include <QCloseEvent>
 #include <QResizeEvent>
+#include <QSettings>
 #include <QShowEvent>
+#include <QThread>
 #include <QVBoxLayout>
 #include <QTransform>
 #include <cmath>
 #include <tuple>
 
-#include "ComputerMove.h"
-#include "Evaluation.h"
+#include "AiWorker.h"
 #include "historydialog.h"
-#include "judgeWinner.h"
+#include "replaydialog.h"
+#include "domain/aggregates/game_board.h"
 #include "resultdialog.h"
 #include "winratechart.h"
 
@@ -67,6 +70,19 @@ namespace
 		const double rate = std::tanh(score * k);
 		// tanh 输出 [-1, 1]，映射到 [2, 98] 避免极端值。
 		return 50.0 + rate * 48.0;
+	}
+
+	// 将 ePiece 数组转换为 GameBoard 供 DDD 层使用
+	game_core::GameBoard ToGameBoard(const ePiece arrBoard[15][15])
+	{
+		game_core::GameBoard board;
+		for (int i = 0; i < 15; ++i)
+			for (int j = 0; j < 15; ++j)
+				if (arrBoard[i][j] != NONE) {
+					game_core::Piece p = (arrBoard[i][j] == WHITE) ? game_core::Piece::White : game_core::Piece::Black;
+					board.placePiece(game_core::Position(i, j), p);
+				}
+		return board;
 	}
 
 	QString StarterText(bool playerStarts)
@@ -240,8 +256,6 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_sCurrentUser(playerRecord.displayName)
 	, m_bStarted(false)
 	, m_bPlayerStarts(playerRecord.preferredStarter == "player")
-	, m_pJugdeWinner(0)
-	, m_pEvaluation(0)
 	, m_nPlayerWins(playerRecord.wins)
 	, m_nAiWins(playerRecord.losses)
 	, m_nFinishedGames(playerRecord.games.isEmpty() ? playerRecord.wins + playerRecord.losses : playerRecord.games.size())
@@ -252,6 +266,14 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_nPreferredDeep(8)
 	, m_pThinkToggleBtn(0)
 	, m_bShowTop10(false)
+	, m_pHintBtn(0)
+	, m_bHintVisible(false)
+	, m_bPvPMode(false)
+	, m_nUndoCount(0)
+	, m_nMaxUndoCount(999)
+	, m_pAiThread(nullptr)
+	, m_pAiWorker(nullptr)
+	, m_bAiThinking(false)
 {
 	ui.setupUi(this);
 
@@ -389,10 +411,27 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		"}"
 		"QPushButton#thinkToggleBtn:pressed {"
 		"background-color: rgba(236,242,249,236);"
+		"}"
+		"QPushButton#hintButton {"
+		"min-height: 68px;"
+		"padding: 0 16px;"
+		"font-size: 24px;"
+		"font-weight: 600;"
+		"color: rgb(47, 58, 76);"
+		"}"
+		"QPushButton#hintButton:hover {"
+		"background-color: rgba(255,255,255,228);"
+		"}"
+		"QPushButton#hintButton:checked {"
+		"background-color: rgba(34,139,87,210);"
+		"color: white;"
+		"}"
+		"QPushButton#hintButton:pressed {"
+		"background-color: rgba(28,120,74,236);"
 		"}");
 
 	// 创建"AI 思考"按钮并插入到左侧面板按钮行（row 0）。
-	// 使用 insertWidget 把按钮放在 aiInfoButton 之前（col 2 位置，原 aiInfoButton 被 push 到 col 3）。
+	// 重新排列：col0=start, col1=history, col2=thinkToggle, col3=undo, col4=aiInfo，共5列。
 	m_pThinkToggleBtn = new QPushButton(QString::fromUtf8("AI \u601D\u8003"), ui.left_widget);
 	m_pThinkToggleBtn->setObjectName("thinkToggleBtn");
 	m_pThinkToggleBtn->setCheckable(true);
@@ -400,12 +439,23 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	QGridLayout *leftLayout = qobject_cast<QGridLayout *>(ui.left_widget->layout());
 	if (leftLayout)
 	{
-		// 把 aiInfoButton 从 row 0 col 2 移走，然后把新按钮插入到 col 2。
+		// 移走 undoButton 和 aiInfoButton，重新排列为 col2=thinkToggle, col3=undo, col4=aiInfo。
+		leftLayout->removeWidget(ui.undoButton);
 		leftLayout->removeWidget(ui.aiInfoButton);
 		leftLayout->addWidget(m_pThinkToggleBtn, 0, 2);
-		leftLayout->addWidget(ui.aiInfoButton, 0, 3);
+		leftLayout->addWidget(ui.undoButton, 0, 3);
+		leftLayout->addWidget(ui.aiInfoButton, 0, 4);
 	}
 	connect(m_pThinkToggleBtn, &QPushButton::toggled, this, &Backgammon::slotThinkToggleClicked);
+
+	// 创建「提示」按钮并插入到左侧面板按钮行 col5。
+	m_pHintBtn = new QPushButton(QString::fromUtf8("\u63D0\u793A"), ui.left_widget);
+	m_pHintBtn->setObjectName("hintButton");
+	m_pHintBtn->setCheckable(true);
+	m_pHintBtn->setMinimumHeight(68);
+	if (leftLayout)
+		leftLayout->addWidget(m_pHintBtn, 0, 5);
+	connect(m_pHintBtn, &QPushButton::toggled, this, &Backgammon::slotHintBtnClicked);
 
 	// 棋盘背景：浅木纹径向渐变，中心偏亮、边缘微暗，保持明亮清爽感。
 	QRadialGradient boardBg(kBoardCenter * kGridSize + 180, kBoardCenter * kGridSize - 120, 600);
@@ -450,14 +500,41 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	connect(ui.difficultyComboBox, SIGNAL(currentTextChanged(QString)), this, SLOT(slotDifficultyTextChanged(QString)));
 	connect(ui.aiInfoButton, &QPushButton::clicked, this, [this]() { ShowAiLogicDialog(this, m_nDeep); });
 	ui.startButton->setChecked(false);
-	m_pJugdeWinner = new judgeWinner();
-	m_pEvaluation = new Evaluation();
+
+	// 初始化 AI 异步计算线程
+	m_pAiThread = new QThread(this);
+	m_pAiWorker = new AiWorker();
+	m_pAiWorker->moveToThread(m_pAiThread);
+	connect(m_pAiThread, &QThread::finished, m_pAiWorker, &QObject::deleteLater);
+	connect(m_pAiWorker, &AiWorker::MoveReady, this, &Backgammon::slotAiMoveReady);
+	m_pAiThread->start();
+
+	// 恢复上次退出时保存的窗口状态和难度设置。
+	QSettings settings("Backgammon", "Backgammon");
+	if (settings.contains("windowGeometry"))
+		restoreGeometry(settings.value("windowGeometry").toByteArray());
+	const int savedDepth = settings.value("difficulty", 8).toInt();
+	SetDifficulty(savedDepth);
+	// 同步界面上的难度下拉框显示。
+	const QString depthText = QString::number(savedDepth) + QString::fromUtf8(" \u6B65");
+	ui.difficultyComboBox->setCurrentText(depthText);
 }
 
 Backgammon::~Backgammon()
 {
-	delete m_pEvaluation;
-	delete m_pJugdeWinner;
+	if (m_pAiThread) {
+		m_pAiThread->quit();
+		m_pAiThread->wait();
+	}
+}
+
+void Backgammon::closeEvent(QCloseEvent *event)
+{
+	// 退出时持久化窗口几何信息和难度设置。
+	QSettings settings("Backgammon", "Backgammon");
+	settings.setValue("windowGeometry", saveGeometry());
+	settings.setValue("difficulty", m_nDeep);
+	QMainWindow::closeEvent(event);
 }
 
 void Backgammon::DrawBoard()
@@ -519,6 +596,9 @@ void Backgammon::slotStartBtnClicked()
 		ui.starterComboBox->setEnabled(false);
 		ui.difficultyComboBox->setEnabled(false);
 		m_bStarted = true;
+		m_nUndoCount = 0;
+		// 游戏开始时启用悔棋按钮（玩家落子后才真正有棋可悔，但提前启用保持界面一致）。
+		ui.undoButton->setEnabled(true);
 		ResetWinRateEstimate();
 		if (!m_bPlayerStarts)
 			PlaceAiOpeningMove();
@@ -613,6 +693,16 @@ void Backgammon::slotHistoryBtnClicked()
 			PersistPlayerRecord();
 			UpdateStatsPanel();
 		});
+	// 连接回放信号：用户选择回放某局时，打开 ReplayDialog 展示棋谱。
+	connect(&dialog, &HistoryDialog::replayRequested, this,
+		[this](int gameIndex)
+		{
+			if (gameIndex < 0 || gameIndex >= m_playerRecord.games.size())
+				return;
+			ReplayDialog *replayDlg = new ReplayDialog(m_playerRecord.games[gameIndex], this);
+			replayDlg->setAttribute(Qt::WA_DeleteOnClose);
+			replayDlg->exec();
+		});
 	dialog.exec();
 }
 void Backgammon::slotUndoBtnClicked()
@@ -626,42 +716,41 @@ void Backgammon::slotUndoBtnClicked()
 		return;
 	}
 
-	// 每次悔棋撤销最后的两步：玩家的一步 + AI的一步（如果有）
-	int removeCount = 0;
+	// PvE 模式一次撤销玩家和 AI 各一步，PvP 模式每次撤销一步。
+	const int stepsToUndo = m_bPvPMode ? 1 : 2;
 
-	while (removeCount < 2 && !m_currentGameMoves.isEmpty())
+	for (int i = 0; i < stepsToUndo && !m_currentGameMoves.isEmpty(); ++i)
 	{
-		MoveRecord lastMove = m_currentGameMoves.back();
+		const MoveRecord lastMove = m_currentGameMoves.back();
 		m_currentGameMoves.pop_back();
+
+		// 同步撤销胜率历史记录。
+		if (!m_playerRateHistory.isEmpty())
+			m_playerRateHistory.pop_back();
+		if (!m_aiRateHistory.isEmpty())
+			m_aiRateHistory.pop_back();
 
 		m_arrBoard[lastMove.row][lastMove.col] = NONE;
 
-		QList<QGraphicsItem*> items = m_pGraphicsScene->items();
+		// 从场景中找到并删除对应位置的棋子图形项。
+		const QList<QGraphicsItem*> items = m_pGraphicsScene->items();
 		for (QGraphicsItem* item : items)
 		{
-			if (item->type() == QGraphicsEllipseItem::Type)
+			if (item->type() != QGraphicsEllipseItem::Type)
+				continue;
+			QGraphicsEllipseItem* ellipseItem = static_cast<QGraphicsEllipseItem*>(item);
+			const QRectF rect = ellipseItem->rect();
+			const int boardRow = SceneToBoard(rect.x() + rect.width() / 2.0);
+			const int boardCol = SceneToBoard(rect.y() + rect.height() / 2.0);
+			if (boardRow == lastMove.row && boardCol == lastMove.col)
 			{
-				QGraphicsEllipseItem* ellipseItem = static_cast<QGraphicsEllipseItem*>(item);
-				QRectF rect = ellipseItem->rect();
-				qreal centerX = rect.x() + rect.width() / 2.0;
-				qreal centerY = rect.y() + rect.height() / 2.0;
-				int boardRow = SceneToBoard(centerX);
-				int boardCol = SceneToBoard(centerY);
-
-				if (boardRow == lastMove.row && boardCol == lastMove.col)
-				{
-					if (ellipseItem == m_pLastAiPiece)
-					{
-						m_pLastAiPiece = nullptr;
-					}
-					m_pGraphicsScene->removeItem(item);
-					delete item;
-					break;
-				}
+				if (ellipseItem == m_pLastAiPiece)
+					m_pLastAiPiece = nullptr;
+				m_pGraphicsScene->removeItem(item);
+				delete item;
+				break;
 			}
 		}
-
-		removeCount++;
 	}
 
 	m_nMoveCount = m_currentGameMoves.size();
@@ -675,8 +764,10 @@ void Backgammon::slotUndoBtnClicked()
 	{
 		m_nPlayerWinRate = m_playerRateHistory.back();
 		m_nAiWinRate = 100.0 - m_nPlayerWinRate;
-}
+	}
 
+	// 无可悔棋步时禁用悔棋按钮。
+	ui.undoButton->setEnabled(!m_currentGameMoves.isEmpty());
 }
 
 bool Backgammon::IsBoardClean()
@@ -725,7 +816,8 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 	// 玩家刚走完，接下来轮到 AI 落子。
 	UpdateWinRateEstimate(WHITE);
 
-	if (m_pJugdeWinner->IsWon(BLACK, m_arrBoard))
+	const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+	if (m_winDetector.checkWin(gboard, game_core::Piece::Black))
 	{
 		RecordGameResult(BLACK);
 		ResultDialog(this, true, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
@@ -733,23 +825,11 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 		return;
 	}
 
-	ComputerMove* pComputerMove = new ComputerMove();
-	pComputerMove->MaxMinSearch(m_arrBoard, m_nDeep);
-	const int aiRow = pComputerMove->X();
-	const int aiCol = pComputerMove->Y();
-	delete pComputerMove;
-
-	PlaceAiMove(aiRow, aiCol);
-	// AI 刚走完，接下来轮到玩家落子。
-	UpdateWinRateEstimate(BLACK);
-
-	if (m_pJugdeWinner->IsWon(WHITE, m_arrBoard))
-	{
-		RecordGameResult(WHITE);
-		ResultDialog(this, false, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
-		FinishRoundCleanup();
-		return;
-	}
+	// 通过 AiWorker 异步计算 AI 落子，禁止玩家在此期间操作
+	m_bAiThinking = true;
+	m_bStarted = false;
+	m_pAiWorker->SetBoard(m_arrBoard, m_nDeep);
+	QMetaObject::invokeMethod(m_pAiWorker, "Run", Qt::QueuedConnection);
 }
 
 void Backgammon::CleanBoard()
@@ -819,6 +899,9 @@ void Backgammon::ResetWinRateEstimate()
 	m_currentGameMoves.clear();
 	m_pLastAiPiece = 0;
 	ClearTop10Overlay();
+	ClearHintOverlay();
+	if (m_pHintBtn)
+		m_pHintBtn->setChecked(false);
 	UpdateStatsPanel();
 }
 
@@ -848,34 +931,32 @@ void Backgammon::UpdateStatsPanel()
 
 void Backgammon::UpdateWinRateEstimate(ePiece nextPiece)
 {
-	if (!m_pEvaluation)
-		return;
+	const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
 
-	if (m_pJugdeWinner->IsWon(WHITE, m_arrBoard))
+	if (m_winDetector.checkWin(gboard, game_core::Piece::White))
 	{
 		m_nAiWinRate = 100.0;
 		m_nPlayerWinRate = 0.0;
 	}
-	else if (m_pJugdeWinner->IsWon(BLACK, m_arrBoard))
+	else if (m_winDetector.checkWin(gboard, game_core::Piece::Black))
 	{
 		m_nAiWinRate = 0.0;
 		m_nPlayerWinRate = 100.0;
 	}
-	// 关键修复：检查即将落子的轮次方是否已经有冲四/活四（一步即可五连）。
-	// 轮次方拥有必赢棋型时，胜率应接近 100%，因为对方无法同时封堵两端。
-	else if (nextPiece == BLACK && m_pEvaluation->HasWinningMove(m_arrBoard, BLACK))
+	// 检查即将落子的轮次方是否已经有冲四/活四（一步即可五连）。
+	else if (nextPiece == BLACK && m_boardEvaluator.hasWinningMove(gboard, game_core::Piece::Black))
 	{
 		m_nAiWinRate = 0.0;
 		m_nPlayerWinRate = 100.0;
 	}
-	else if (nextPiece == WHITE && m_pEvaluation->HasWinningMove(m_arrBoard, WHITE))
+	else if (nextPiece == WHITE && m_boardEvaluator.hasWinningMove(gboard, game_core::Piece::White))
 	{
 		m_nAiWinRate = 100.0;
 		m_nPlayerWinRate = 0.0;
 	}
 	else
 	{
-		const int score = m_pEvaluation->EvaluateBoard(m_arrBoard);
+		const int score = m_boardEvaluator.evaluate(gboard);
 		m_nAiWinRate = ScoreToAiWinRate(score);
 		m_nPlayerWinRate = 100.0 - m_nAiWinRate;
 	}
@@ -967,6 +1048,10 @@ void Backgammon::PlaceAiMove(int row, int col)
 
 void Backgammon::PlacePlayerMove(int row, int col)
 {
+	// 落子后清除提示标记并重置按钮状态。
+	ClearHintOverlay();
+	if (m_pHintBtn && m_pHintBtn->isChecked())
+		m_pHintBtn->setChecked(false);
 	m_arrBoard[row][col] = BLACK;
 	const int x = BoardToScene(row) - kPieceRadius;
 	const int y = BoardToScene(col) - kPieceRadius;
@@ -998,12 +1083,35 @@ void Backgammon::FinishRoundCleanup()
 	ui.startButton->setChecked(false);
 	ui.starterComboBox->setEnabled(true);
 	ui.difficultyComboBox->setEnabled(true);
+	// 对局结束后禁用悔棋按钮，并重置悔棋计数。
+	ui.undoButton->setEnabled(false);
+	m_nUndoCount = 0;
+	m_currentGameMoves.clear();
 	CleanBoard();
 }
 
 QString Backgammon::CurrentStarterPreference() const
 {
 	return ui.starterComboBox->currentData().toString();
+}
+
+void Backgammon::slotAiMoveReady(int row, int col)
+{
+	// AI 计算完成，在主线程落子并恢复输入
+	m_bAiThinking = false;
+	m_bStarted = true;
+
+	PlaceAiMove(row, col);
+	// AI 刚走完，接下来轮到玩家落子。
+	UpdateWinRateEstimate(BLACK);
+
+	const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+	if (m_winDetector.checkWin(gboard, game_core::Piece::White))
+	{
+		RecordGameResult(WHITE);
+		ResultDialog(this, false, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
+		FinishRoundCleanup();
+	}
 }
 
 void Backgammon::slotThinkToggleClicked()
@@ -1027,11 +1135,7 @@ void Backgammon::ComputeAndShowTop10()
 	ClearTop10Overlay();
 
 	// 如果没有评估器或棋盘为空（第一手AI天元除外），不显示。
-	if (!m_pEvaluation)
-		return;
-
 	// 确定当前轮到谁走：偶数手数后轮到玩家（BLACK），奇数手数后轮到AI（WHITE）。
-	// 在显示 Top10 时，我们展示的是从当前轮次方视角看的最佳候选点。
 	const ePiece currentPiece = (m_nMoveCount % 2 == 0) ? BLACK : WHITE;
 
 	// 收集所有候选空位（八邻域有棋子的空点）。
@@ -1061,10 +1165,13 @@ void Backgammon::ComputeAndShowTop10()
 			if (!hasNeighbor && !(i == kBoardCenter && j == kBoardCenter && m_nMoveCount == 0))
 				continue;
 
-			// 计算综合评估分 = 己方增益 + 对手阻断价值（与 ComputerMove 中排序逻辑一致）。
-			const int attackScore = m_pEvaluation->EvaluateMove(m_arrBoard, i, j, currentPiece);
+			// 计算综合评估分 = 己方增益 + 对手阻断价值
+			const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+			const game_core::Piece gcur = (currentPiece == BLACK) ? game_core::Piece::Black : game_core::Piece::White;
+			const game_core::Piece gopp = (currentPiece == BLACK) ? game_core::Piece::White : game_core::Piece::Black;
+			const int attackScore = m_boardEvaluator.evaluateMove(gboard, game_core::Position(i, j), gcur);
 			const ePiece opponent = (currentPiece == BLACK) ? WHITE : BLACK;
-			const int defenseScore = m_pEvaluation->EvaluateMove(m_arrBoard, i, j, opponent);
+			const int defenseScore = m_boardEvaluator.evaluateMove(gboard, game_core::Position(i, j), gopp);
 			const int totalScore = attackScore + defenseScore * 2;
 			candidates.push_back({i, j, totalScore});
 		}
@@ -1095,14 +1202,13 @@ void Backgammon::ComputeAndShowTop10()
 	{
 		const int row = std::get<0>(candidates[rank]);
 		const int col = std::get<1>(candidates[rank]);
-		// 临时落子，用 ComputerMove 搜索评估该点后续发展。
+		// 临时落子，用 AIEngine 搜索评估该点后续发展
 		m_arrBoard[row][col] = currentPiece;
-		ComputerMove cm;
-		// 如果轮次方是 WHITE（AI），直接用 MaxMinSearch 评估 WHITE 视角；
-		// 如果轮次方是 BLACK（玩家），需要通过搜索 WHITE 视角取反来评估。
-		cm.MaxMinSearch(m_arrBoard, thinkDepth - 1);
-		// MaxMinSearch 搜索完毕后，用 EvaluateBoard 得到当前局面分数作为该候选点的评分。
-		const int boardScore = m_pEvaluation->EvaluateBoard(m_arrBoard);
+		game_core::GameBoard tempBoard = ToGameBoard(m_arrBoard);
+		const game_core::Piece gcur = (currentPiece == WHITE) ? game_core::Piece::White : game_core::Piece::Black;
+		m_aiEngine.setSearchDepth(thinkDepth - 1);
+		m_aiEngine.calculateBestMove(tempBoard, gcur);
+		const int boardScore = m_boardEvaluator.evaluate(tempBoard);
 		m_arrBoard[row][col] = NONE;
 		const int effectiveScore = (currentPiece == WHITE) ? boardScore : -boardScore;
 		winRates[rank] = ScoreToAiWinRate(effectiveScore);
@@ -1174,4 +1280,33 @@ void Backgammon::ClearTop10Overlay()
 		}
 	}
 	m_top10Items.clear();
+}
+
+void Backgammon::ClearHintOverlay()
+{
+	// 从场景中移除并删除所有提示标记图形项。
+	for (QGraphicsItem *item : m_hintItems)
+	{
+		if (item)
+		{
+			m_pGraphicsScene->removeItem(item);
+			delete item;
+		}
+	}
+	m_hintItems.clear();
+	m_bHintVisible = false;
+}
+
+void Backgammon::slotHintBtnClicked(bool checked)
+{
+	if (checked)
+		ComputeAndShowHint();
+	else
+		ClearHintOverlay();
+}
+
+void Backgammon::ComputeAndShowHint()
+{
+	// 提示功能暂未实现，预留接口。
+	ClearHintOverlay();
 }

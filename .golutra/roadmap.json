@@ -1,9 +1,26 @@
 {
   "_roadmapMeta": {
-    "updatedAt": 1774870017550
+    "updatedAt": 1774874024769
   },
   "roadmap": {
-    "objective": "",
-    "tasks": []
+    "objective": "五子棋游戏功能升级（进行中）",
+    "tasks": [
+      {
+        "id": 1,
+        "number": "01",
+        "pinned": false,
+        "sortOrder": 1,
+        "status": "done",
+        "title": "悔棋功能 - 支持撤销上一步棋局"
+      },
+      {
+        "id": 2,
+        "number": "02",
+        "pinned": false,
+        "sortOrder": 2,
+        "status": "done",
+        "title": "双人对战模式 - 本地双玩家对战"
+      }
+    ]
   }
 }

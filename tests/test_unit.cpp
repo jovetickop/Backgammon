@@ -2,9 +2,12 @@
 #include <gtest/gtest.h>
 #include <QCoreApplication>
 #include "types.h"
-#include "judgeWinner.h"
-#include "Evaluation.h"
 #include "playerstatsstore.h"
+#include "domain/aggregates/game_board.h"
+#include "domain/services/win_detector.h"
+#include "domain/services/board_evaluator.h"
+
+using namespace game_core;
 
 // ==================== types.h 测试 ====================
 
@@ -44,88 +47,107 @@ TEST(TypesTest, FiveIsHighest)
     EXPECT_GT(FIVE, CLOSE_FOUR);
 }
 
-// ==================== judgeWinner 测试 ====================
+// ==================== WinDetector 测试（替代旧 judgeWinner）====================
+
+// 辅助：将 ePiece 数组转为 GameBoard
+static GameBoard MakeBoard(const ePiece arr[15][15]) {
+    GameBoard b;
+    for (int i = 0; i < 15; ++i)
+        for (int j = 0; j < 15; ++j)
+            if (arr[i][j] != NONE) {
+                Piece p = (arr[i][j] == WHITE) ? Piece::White : Piece::Black;
+                b.placePiece(Position(i, j), p);
+            }
+    return b;
+}
 
 class JudgeWinnerTest : public ::testing::Test
 {
 protected:
-    judgeWinner judge;
+    WinDetector judge;
     ePiece board[15][15];
 
     void SetUp() override
     {
-        memset(board, 0, sizeof(board)); // NONE = 0
+        memset(board, 0, sizeof(board));
+    }
+
+    // 判断指定棋子是否获胜（兼容原 IsWon 接口）
+    bool IsWon(ePiece piece, const ePiece arr[15][15]) {
+        GameBoard b = MakeBoard(arr);
+        Piece p = (piece == WHITE) ? Piece::White : Piece::Black;
+        return judge.checkWin(b, p);
     }
 };
 
 TEST_F(JudgeWinnerTest, EmptyBoard_NoWinner)
 {
-    EXPECT_FALSE(judge.IsWon(BLACK, board));
-    EXPECT_FALSE(judge.IsWon(WHITE, board));
+    EXPECT_FALSE(IsWon(BLACK, board));
+    EXPECT_FALSE(IsWon(WHITE, board));
 }
 
 TEST_F(JudgeWinnerTest, Black_HorizontalFive_Wins)
 {
     // 第7行 cols 0-4 五连
     for (int i = 0; i < 5; ++i) board[7][i] = BLACK;
-    EXPECT_TRUE(judge.IsWon(BLACK, board));
-    EXPECT_FALSE(judge.IsWon(WHITE, board));
+    EXPECT_TRUE(IsWon(BLACK, board));
+    EXPECT_FALSE(IsWon(WHITE, board));
 }
 
 TEST_F(JudgeWinnerTest, White_VerticalFive_Wins)
 {
     // 第7列 rows 0-4 五连
     for (int i = 0; i < 5; ++i) board[i][7] = WHITE;
-    EXPECT_TRUE(judge.IsWon(WHITE, board));
-    EXPECT_FALSE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(WHITE, board));
+    EXPECT_FALSE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, Black_DiagonalRightDown_Wins)
 {
     // 主对角线方向
     for (int i = 0; i < 5; ++i) board[i][i] = BLACK;
-    EXPECT_TRUE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, Black_DiagonalRightUp_Wins)
 {
     // 反对角线方向
     for (int i = 0; i < 5; ++i) board[i][14 - i] = BLACK;
-    EXPECT_TRUE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, FourInRow_NoWinner)
 {
     for (int i = 0; i < 4; ++i) board[7][i] = BLACK;
-    EXPECT_FALSE(judge.IsWon(BLACK, board));
+    EXPECT_FALSE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, SixInRow_StillWins)
 {
     // 六子含五连子集，仍算获胜
     for (int i = 0; i < 6; ++i) board[7][i] = BLACK;
-    EXPECT_TRUE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, FiveInRow_BottomEdge)
 {
     // 最后一行边缘
     for (int j = 10; j <= 14; ++j) board[14][j] = WHITE;
-    EXPECT_TRUE(judge.IsWon(WHITE, board));
+    EXPECT_TRUE(IsWon(WHITE, board));
 }
 
 TEST_F(JudgeWinnerTest, FiveInRow_LeftEdge)
 {
     // 第一列边缘
     for (int i = 0; i < 5; ++i) board[i][0] = BLACK;
-    EXPECT_TRUE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, FiveInRow_TopRightCorner)
 {
     // 右上角附近主对角线
     for (int i = 0; i < 5; ++i) board[i][10 + i] = WHITE;
-    EXPECT_TRUE(judge.IsWon(WHITE, board));
+    EXPECT_TRUE(IsWon(WHITE, board));
 }
 
 TEST_F(JudgeWinnerTest, Interrupted_NoWinner)
@@ -133,29 +155,29 @@ TEST_F(JudgeWinnerTest, Interrupted_NoWinner)
     // 中间被对方棋子打断
     for (int i = 0; i < 4; ++i) board[7][i] = BLACK;
     board[7][2] = WHITE; // 打断
-    EXPECT_FALSE(judge.IsWon(BLACK, board));
+    EXPECT_FALSE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, OpponentWins_SelfDoesNot)
 {
     // 白棋五连，黑棋不算赢
     for (int i = 0; i < 5; ++i) board[7][i] = WHITE;
-    EXPECT_TRUE(judge.IsWon(WHITE, board));
-    EXPECT_FALSE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(WHITE, board));
+    EXPECT_FALSE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, DiagonalRightDown_BottomRight)
 {
     // 右下角主对角
     for (int i = 0; i < 5; ++i) board[10 + i][10 + i] = BLACK;
-    EXPECT_TRUE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(BLACK, board));
 }
 
 TEST_F(JudgeWinnerTest, DiagonalRightUp_BottomLeft)
 {
     // 左下角反对角
     for (int i = 0; i < 5; ++i) board[14 - i][i] = WHITE;
-    EXPECT_TRUE(judge.IsWon(WHITE, board));
+    EXPECT_TRUE(IsWon(WHITE, board));
 }
 
 TEST_F(JudgeWinnerTest, ExactlyFive_NotFour)
@@ -166,26 +188,40 @@ TEST_F(JudgeWinnerTest, ExactlyFive_NotFour)
     board[5][7] = BLACK;
     board[5][8] = BLACK;
     board[5][9] = BLACK;
-    EXPECT_TRUE(judge.IsWon(BLACK, board));
+    EXPECT_TRUE(IsWon(BLACK, board));
 }
 
-// ==================== Evaluation 测试 ====================
+// ==================== BoardEvaluator 测试（替代旧 Evaluation）====================
 
 class EvaluationTest : public ::testing::Test
 {
 protected:
-    Evaluation eval;
+    BoardEvaluator eval;
     ePiece board[15][15];
 
     void SetUp() override
     {
         memset(board, 0, sizeof(board));
     }
+
+    int EvaluateBoard() { return eval.evaluate(MakeBoard(board)); }
+    bool HasWinningMove(ePiece p) {
+        Piece gp = (p == WHITE) ? Piece::White : Piece::Black;
+        return eval.hasWinningMove(MakeBoard(board), gp);
+    }
+    int CountOpenThrees(ePiece p) {
+        Piece gp = (p == WHITE) ? Piece::White : Piece::Black;
+        return eval.countOpenThrees(MakeBoard(board), gp);
+    }
+    int EvaluateMove(int r, int c, ePiece p) {
+        Piece gp = (p == WHITE) ? Piece::White : Piece::Black;
+        return eval.evaluateMove(MakeBoard(board), Position(r, c), gp);
+    }
 };
 
 TEST_F(EvaluationTest, EmptyBoard_NearZero)
 {
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_GE(score, -100);
     EXPECT_LE(score, 100);
 }
@@ -194,7 +230,7 @@ TEST_F(EvaluationTest, BlackFive_MaxNegativeScore)
 {
     // 黑棋五连，得分应接近 -FIVE
     for (int i = 0; i < 5; ++i) board[7][i] = BLACK;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_LE(score, -FIVE + 100);
 }
 
@@ -202,7 +238,7 @@ TEST_F(EvaluationTest, WhiteFive_MaxPositiveScore)
 {
     // 白棋五连，得分应接近 +FIVE
     for (int i = 0; i < 5; ++i) board[7][i] = WHITE;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_GE(score, FIVE - 100);
 }
 
@@ -210,7 +246,7 @@ TEST_F(EvaluationTest, BlackOpenFour_NegativeScore)
 {
     // 黑棋活四（两端开放），整体得分应为负
     for (int i = 3; i <= 6; ++i) board[7][i] = BLACK;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_LT(score, 0);
 }
 
@@ -218,7 +254,7 @@ TEST_F(EvaluationTest, WhiteOpenFour_PositiveScore)
 {
     // 白棋活四，整体得分应为正
     for (int i = 3; i <= 6; ++i) board[7][i] = WHITE;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_GT(score, 0);
 }
 
@@ -226,7 +262,7 @@ TEST_F(EvaluationTest, BlackOpenThree_NegativeScore)
 {
     // 黑棋活三，得分应为负
     for (int i = 4; i <= 6; ++i) board[7][i] = BLACK;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_LT(score, 0);
 }
 
@@ -234,7 +270,7 @@ TEST_F(EvaluationTest, WhiteOpenThree_PositiveScore)
 {
     // 白棋活三，得分应为正
     for (int i = 4; i <= 6; ++i) board[7][i] = WHITE;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_GT(score, 0);
 }
 
@@ -243,7 +279,7 @@ TEST_F(EvaluationTest, SymmetricBoard_NearZero)
     // 对称落子，整体趋近平衡
     board[7][5] = BLACK;
     board[7][9] = WHITE;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     // 单子对称，分差不应过大
     EXPECT_GT(score, -OPEN_THREE);
     EXPECT_LT(score, OPEN_THREE);
@@ -254,7 +290,7 @@ TEST_F(EvaluationTest, WhiteFive_Beats_BlackOpenFour)
     // 白五连 vs 黑活四，白方优势（正值）
     for (int i = 0; i < 5; ++i) board[3][i] = WHITE;
     for (int i = 3; i <= 6; ++i) board[7][i] = BLACK;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_GT(score, 0);
 }
 
@@ -262,7 +298,7 @@ TEST_F(EvaluationTest, VerticalFive_AlsoDetected)
 {
     // 纵向五连同样得到最高分
     for (int i = 0; i < 5; ++i) board[i][7] = BLACK;
-    int score = eval.EvaluateBoard(board);
+    int score = EvaluateBoard();
     EXPECT_LE(score, -FIVE + 100);
 }
 
@@ -437,12 +473,26 @@ TEST_F(PlayerStatsStoreTest, MultipleUsers_Independent)
 class EvaluationAdvancedTest : public ::testing::Test
 {
 protected:
-    Evaluation eval;
+    BoardEvaluator eval;
     ePiece board[15][15];
 
     void SetUp() override
     {
         memset(board, 0, sizeof(board));
+    }
+
+    bool HasWinningMove(ePiece p) {
+        Piece gp = (p == WHITE) ? Piece::White : Piece::Black;
+        return eval.hasWinningMove(MakeBoard(board), gp);
+    }
+    int CountOpenThrees(ePiece p) {
+        Piece gp = (p == WHITE) ? Piece::White : Piece::Black;
+        return eval.countOpenThrees(MakeBoard(board), gp);
+    }
+    int EvaluateBoard() { return eval.evaluate(MakeBoard(board)); }
+    int EvaluateMove(int r, int c, ePiece p) {
+        Piece gp = (p == WHITE) ? Piece::White : Piece::Black;
+        return eval.evaluateMove(MakeBoard(board), Position(r, c), gp);
     }
 };
 
@@ -451,16 +501,16 @@ protected:
 TEST_F(EvaluationAdvancedTest, HasWinningMove_EmptyBoard_False)
 {
     // 空棋盘没有任何一方有必赢局面。
-    EXPECT_FALSE(eval.HasWinningMove(board, BLACK));
-    EXPECT_FALSE(eval.HasWinningMove(board, WHITE));
+    EXPECT_FALSE(HasWinningMove(BLACK));
+    EXPECT_FALSE(HasWinningMove(WHITE));
 }
 
 TEST_F(EvaluationAdvancedTest, HasWinningMove_HorizontalOpenFour_True)
 {
     // 黑棋横向活四（7行 cols 3~6，两端均空），可一步五连。
     for (int i = 3; i <= 6; ++i) board[7][i] = BLACK;
-    EXPECT_TRUE(eval.HasWinningMove(board, BLACK));
-    EXPECT_FALSE(eval.HasWinningMove(board, WHITE));
+    EXPECT_TRUE(HasWinningMove(BLACK));
+    EXPECT_FALSE(HasWinningMove(WHITE));
 }
 
 TEST_F(EvaluationAdvancedTest, HasWinningMove_VerticalCloseFour_True)
@@ -468,7 +518,7 @@ TEST_F(EvaluationAdvancedTest, HasWinningMove_VerticalCloseFour_True)
     // 白棋纵向冲四（列7 rows 3~6，上方被堵，下方 col=7 row=7 为空）。
     for (int i = 3; i <= 6; ++i) board[i][7] = WHITE;
     board[2][7] = BLACK; // 上端封堵
-    EXPECT_TRUE(eval.HasWinningMove(board, WHITE));
+    EXPECT_TRUE(HasWinningMove(WHITE));
 }
 
 TEST_F(EvaluationAdvancedTest, HasWinningMove_DeadFour_False)
@@ -477,21 +527,21 @@ TEST_F(EvaluationAdvancedTest, HasWinningMove_DeadFour_False)
     for (int i = 4; i <= 7; ++i) board[7][i] = BLACK;
     board[7][3] = WHITE; // 左端堵
     board[7][8] = WHITE; // 右端堵
-    EXPECT_FALSE(eval.HasWinningMove(board, BLACK));
+    EXPECT_FALSE(HasWinningMove(BLACK));
 }
 
 TEST_F(EvaluationAdvancedTest, HasWinningMove_OpenThree_False)
 {
     // 活三不算必赢（需要两步才能五连），应返回 false。
     for (int i = 4; i <= 6; ++i) board[7][i] = BLACK;
-    EXPECT_FALSE(eval.HasWinningMove(board, BLACK));
+    EXPECT_FALSE(HasWinningMove(BLACK));
 }
 
 TEST_F(EvaluationAdvancedTest, HasWinningMove_DiagonalOpenFour_True)
 {
     // 主对角线方向活四。
     for (int i = 5; i <= 8; ++i) board[i][i] = BLACK;
-    EXPECT_TRUE(eval.HasWinningMove(board, BLACK));
+    EXPECT_TRUE(HasWinningMove(BLACK));
 }
 
 TEST_F(EvaluationAdvancedTest, HasWinningMove_AntiDiagonalCloseFour_True)
@@ -499,7 +549,7 @@ TEST_F(EvaluationAdvancedTest, HasWinningMove_AntiDiagonalCloseFour_True)
     // 反对角线方向冲四（上端封堵）。
     for (int i = 3; i <= 6; ++i) board[i][14 - i] = WHITE;
     board[2][12] = BLACK; // 上端封堵
-    EXPECT_TRUE(eval.HasWinningMove(board, WHITE));
+    EXPECT_TRUE(HasWinningMove(WHITE));
 }
 
 // ---------- CountOpenThrees 测试：检测活三数量 ----------
@@ -507,15 +557,15 @@ TEST_F(EvaluationAdvancedTest, HasWinningMove_AntiDiagonalCloseFour_True)
 TEST_F(EvaluationAdvancedTest, CountOpenThrees_EmptyBoard_NoThrees)
 {
     // 空棋盘没有活三。
-    EXPECT_EQ(eval.CountOpenThrees(board, BLACK), -1);
-    EXPECT_EQ(eval.CountOpenThrees(board, WHITE), -1);
+    EXPECT_EQ(CountOpenThrees(BLACK), 0);
+    EXPECT_EQ(CountOpenThrees(WHITE), 0);
 }
 
 TEST_F(EvaluationAdvancedTest, CountOpenThrees_SingleOpenThree_Positive)
 {
     // 单个横向活三（7行 cols 4~6），应返回正值（至少2个关键位置）。
     for (int i = 4; i <= 6; ++i) board[7][i] = BLACK;
-    int count = eval.CountOpenThrees(board, BLACK);
+    int count = CountOpenThrees(BLACK);
     EXPECT_GT(count, 0);
 }
 
@@ -526,14 +576,14 @@ TEST_F(EvaluationAdvancedTest, CountOpenThrees_CloseThree_SameOrLessThanOpenThre
     ePiece openBoard[15][15];
     memset(openBoard, 0, sizeof(openBoard));
     for (int i = 4; i <= 6; ++i) openBoard[7][i] = BLACK;
-    int openCount = eval.CountOpenThrees(openBoard, BLACK);
+    int openCount = eval.countOpenThrees(MakeBoard(openBoard), Piece::Black);
 
     // 眠三场景：7行 cols 4~6，左端 col 3 被白棋封堵。
     ePiece closeBoard[15][15];
     memset(closeBoard, 0, sizeof(closeBoard));
     for (int i = 4; i <= 6; ++i) closeBoard[7][i] = BLACK;
     closeBoard[7][3] = WHITE;
-    int closeCount = eval.CountOpenThrees(closeBoard, BLACK);
+    int closeCount = eval.countOpenThrees(MakeBoard(closeBoard), Piece::Black);
 
     // 眠三的关键位置数不应超过活三。
     EXPECT_LE(closeCount, openCount);
@@ -545,16 +595,16 @@ TEST_F(EvaluationAdvancedTest, CountOpenThrees_DeadThree_NotCounted)
     for (int i = 4; i <= 6; ++i) board[7][i] = BLACK;
     board[7][3] = WHITE; // 左端封堵
     board[7][7] = WHITE; // 右端封堵
-    int count = eval.CountOpenThrees(board, BLACK);
-    EXPECT_EQ(count, -1);
+    int count = CountOpenThrees(BLACK);
+    EXPECT_EQ(count, 0);
 }
 
 TEST_F(EvaluationAdvancedTest, CountOpenThrees_OpponentHasNoThrees)
 {
     // 黑棋有活三，白棋不应有活三。
     for (int i = 4; i <= 6; ++i) board[7][i] = BLACK;
-    int whiteCount = eval.CountOpenThrees(board, WHITE);
-    EXPECT_EQ(whiteCount, -1);
+    int whiteCount = CountOpenThrees(WHITE);
+    EXPECT_EQ(whiteCount, 0);
 }
 
 // ---------- EvaluateMove 测试：单步落子评估 ----------
@@ -562,16 +612,16 @@ TEST_F(EvaluationAdvancedTest, CountOpenThrees_OpponentHasNoThrees)
 TEST_F(EvaluationAdvancedTest, EvaluateMove_EmptyBoard_NonZero)
 {
     // 在空棋盘上落子，评估分应非零（产生活一分值）。
-    int score = eval.EvaluateMove(board, 7, 7, BLACK);
+    int score = EvaluateMove(7, 7, BLACK);
     EXPECT_NE(score, 0);
 }
 
 TEST_F(EvaluationAdvancedTest, EvaluateMove_ScoreRestoresBoard)
 {
     // 调用 EvaluateMove 后棋盘应恢复原状（不留下临时落子）。
-    int beforeScore = eval.EvaluateBoard(board);
-    eval.EvaluateMove(board, 7, 7, WHITE);
-    int afterScore = eval.EvaluateBoard(board);
+    int beforeScore = EvaluateBoard();
+    EvaluateMove(7, 7, WHITE);
+    int afterScore = EvaluateBoard();
     EXPECT_EQ(beforeScore, afterScore);
 }
 
@@ -580,7 +630,7 @@ TEST_F(EvaluationAdvancedTest, EvaluateMove_WinningMove_HighScore)
     // 落子直接形成五连，分值应极高（接近 FIVE）。
     // 先放置四连黑子（7行 cols 3~6），然后在 col 7 落子。
     for (int i = 3; i <= 6; ++i) board[7][i] = BLACK;
-    int score = eval.EvaluateMove(board, 7, 7, BLACK);
+    int score = EvaluateMove(7, 7, BLACK);
     // 落子后形成五连，EvaluateBoard 返回值包含 -FIVE，分值应非常低（大负数）。
     EXPECT_LT(score, -FIVE / 2);
 }
@@ -590,12 +640,12 @@ TEST_F(EvaluationAdvancedTest, EvaluateMove_OpenFourHigherThanOpenThree)
     // 落子形成活四的得分应远高于落子形成活三的得分。
     // 活四场景：7行已有3子（cols 4~6），落子 col 3 形成活四。
     for (int i = 4; i <= 6; ++i) board[7][i] = BLACK;
-    int openFourScore = eval.EvaluateMove(board, 7, 3, BLACK);
+    int openFourScore = EvaluateMove(7, 3, BLACK);
 
     // 活三场景：7行已有2子（cols 5~6），落子 col 4 形成活三。
     memset(board, 0, sizeof(board));
     for (int i = 5; i <= 6; ++i) board[7][i] = BLACK;
-    int openThreeScore = eval.EvaluateMove(board, 7, 4, BLACK);
+    int openThreeScore = EvaluateMove(7, 4, BLACK);
 
     EXPECT_LT(openFourScore, openThreeScore); // 活四（更利于黑棋）分值更低
 }
@@ -605,10 +655,10 @@ TEST_F(EvaluationAdvancedTest, EvaluateMove_DefenseValue_Positive)
     // 阻断对手棋型有价值：白棋已有活三，黑棋在端点落子可破坏白棋的扩展空间。
     for (int i = 4; i <= 6; ++i) board[7][i] = WHITE;
     // 黑棋在 col 3 落子（白活三的左端点），评估黑棋视角：减少白方分即有利于黑方。
-    int blackDefenseScore = eval.EvaluateMove(board, 7, 3, BLACK);
+    int blackDefenseScore = EvaluateMove(7, 3, BLACK);
     // EvaluateMove 返回 EvaluateBoard 值，阻断白棋活三应使白方分降低（分值趋负）。
     // 但由于该位置本身也有黑棋价值，更合理的断言是阻断后分值低于不阻断时。
-    int baseScore = eval.EvaluateBoard(board); // 未落子时的棋盘分值
+    int baseScore = EvaluateBoard(); // 未落子时的棋盘分值
     // 落子后白方分值应减小（黑棋扩张+白棋被阻），因此 EvaluateMove 结果 < baseScore。
     EXPECT_LT(blackDefenseScore, baseScore);
 }

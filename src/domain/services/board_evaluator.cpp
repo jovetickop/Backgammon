@@ -1,40 +1,20 @@
 #include "board_evaluator.h"
-#include "Evaluation.h"
-#include "types.h"
+#include "win_detector.h"
 #include <algorithm>
 #include <utility>
 #include <vector>
-#include <cstring>
+
+// Q_UNUSED 宏替代：避免在非 Qt 翻译单元中依赖 Qt 宏。
+#ifndef Q_UNUSED
+#define Q_UNUSED(x) (void)(x);
+#endif
 
 namespace game_core {
 
-// 转换为内部Piece类型
-static Piece convertPiece(ePiece p) {
-    if (p == WHITE) return Piece::White;
-    if (p == BLACK) return Piece::Black;
-    return Piece::None;
-}
-
-// 转换为ePiece
-static ePiece toEPiece(Piece p) {
-    if (p == Piece::White) return WHITE;
-    if (p == Piece::Black) return BLACK;
-    return NONE;
-}
-
 int BoardEvaluator::evaluate(const GameBoard& board) {
-    // 将GameBoard转换为ePiece数组供原有函数使用
-    ePiece arrBoard[15][15];
-    const auto& src = board.board();
-    for (int i = 0; i < 15; ++i) {
-        for (int j = 0; j < 15; ++j) {
-            arrBoard[i][j] = toEPiece(src[i][j]);
-        }
-    }
-
-    // 调用原有评估函数
-    Evaluation eval;
-    return eval.EvaluateBoard(arrBoard);
+    // 直接使用 DDD 层的 cutBoard + score，白方分 - 黑方分
+    auto vecSum = cutBoard(board);
+    return score(board, Piece::White, vecSum) - score(board, Piece::Black, vecSum);
 }
 
 int BoardEvaluator::evaluateMove(const GameBoard& board, const Position& pos, Piece piece) {
@@ -113,32 +93,31 @@ std::vector<CandidateMove> BoardEvaluator::generateCandidates(const GameBoard& b
 }
 
 bool BoardEvaluator::hasWinningMove(const GameBoard& board, Piece piece) {
-    // 将GameBoard转换为ePiece数组供原有函数使用
-    ePiece arrBoard[15][15];
-    const auto& src = board.board();
-    for (int i = 0; i < 15; ++i) {
-        for (int j = 0; j < 15; ++j) {
-            arrBoard[i][j] = toEPiece(src[i][j]);
+    // 遍历所有空位，检查落子后是否能形成五连
+    WinDetector detector;
+    const auto& arr = board.board();
+    for (int i = 0; i < GameBoard::BOARD_SIZE; ++i) {
+        for (int j = 0; j < GameBoard::BOARD_SIZE; ++j) {
+            if (arr[i][j] != Piece::None) continue;
+            GameBoard temp = board;
+            temp.placePiece(Position(i, j), piece);
+            if (detector.checkWin(temp, piece)) return true;
         }
     }
-
-    Evaluation eval;
-    return eval.HasWinningMove(arrBoard, toEPiece(piece));
+    return false;
 }
 
 int BoardEvaluator::countOpenThrees(const GameBoard& board, Piece piece) {
-    // 将GameBoard转换为ePiece数组供原有函数使用
-    ePiece arrBoard[15][15];
-    const auto& src = board.board();
-    for (int i = 0; i < 15; ++i) {
-        for (int j = 0; j < 15; ++j) {
-            arrBoard[i][j] = toEPiece(src[i][j]);
+    // 扫描棋盘所有线段，统计活三数量
+    auto lines = cutBoard(board);
+    int count = 0;
+    for (const auto& line : lines) {
+        int len = static_cast<int>(line.size());
+        for (int i = 0; i < len; ++i) {
+            if (isOpenThree(line, i, piece)) ++count;
         }
     }
-
-    Evaluation eval;
-    int result = eval.CountOpenThrees(arrBoard, toEPiece(piece));
-    return result > 0 ? result : 0;
+    return count;
 }
 
 std::vector<std::vector<Piece>> BoardEvaluator::cutBoard(const GameBoard& board) {

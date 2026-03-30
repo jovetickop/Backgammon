@@ -45,6 +45,7 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	: QDialog(parent)
 	, m_pHistoryList(nullptr)
 	, m_pDeleteButton(nullptr)
+	, m_pReplayButton(nullptr)
 {
 	setModal(true);
 	setWindowFlag(Qt::WindowContextHelpButtonHint, false);
@@ -176,8 +177,13 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	}
 	cardLayout->addWidget(m_pHistoryList, 1);
 
-	// 底部按钮栏：删除按钮 + 关闭按钮。
+	// 底部按钮栏：回放按钮 + 删除按钮 + 关闭按钮。
 	QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal, card);
+
+	m_pReplayButton = new QPushButton(QString::fromUtf8(u8"▶ 回放"), card);
+	m_pReplayButton->setObjectName("replayBtn");
+	m_pReplayButton->setEnabled(false);
+	buttonBox->addButton(m_pReplayButton, QDialogButtonBox::ActionRole);
 
 	m_pDeleteButton = new QPushButton(QString::fromUtf8(u8"删除选中"), card);
 	m_pDeleteButton->setObjectName("deleteBtn");
@@ -190,15 +196,32 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 
 	cardLayout->addWidget(buttonBox);
 
-	// 信号连接：选择变化时更新删除按钮状态，删除按钮点击时执行删除流程。
+	// 信号连接：选择变化时更新按钮状态，各按钮点击时执行对应流程。
 	connect(m_pHistoryList, &QListWidget::itemSelectionChanged, this, &HistoryDialog::onSelectionChanged);
 	connect(m_pDeleteButton, &QPushButton::clicked, this, &HistoryDialog::onDeleteClicked);
+	connect(m_pReplayButton, &QPushButton::clicked, this, &HistoryDialog::onReplayClicked);
 }
 
 void HistoryDialog::onSelectionChanged()
 {
-	// 有选中项时启用删除按钮，否则禁用。
-	m_pDeleteButton->setEnabled(!m_pHistoryList->selectedItems().isEmpty());
+	const bool hasSingle = m_pHistoryList->selectedItems().size() == 1;
+	const bool hasAny    = !m_pHistoryList->selectedItems().isEmpty();
+	// 有选中项时启用删除按钮；仅选中单项时启用回放按钮。
+	m_pDeleteButton->setEnabled(hasAny);
+	m_pReplayButton->setEnabled(hasSingle);
+}
+
+void HistoryDialog::onReplayClicked()
+{
+	// 取单选项的原始 games 索引，发出回放信号后关闭对话框。
+	const QList<QListWidgetItem *> selected = m_pHistoryList->selectedItems();
+	if (selected.size() != 1)
+		return;
+	const int row = m_pHistoryList->row(selected.first());
+	if (row < 0 || row >= m_gameIndices.size())
+		return;
+	emit replayRequested(m_gameIndices[row]);
+	accept();
 }
 
 void HistoryDialog::onDeleteClicked()

@@ -1,8 +1,6 @@
 #include "ai_engine.h"
-#include "ComputerMove.h"
 #include <algorithm>
 #include <limits>
-#include <cstring>
 
 namespace game_core {
 
@@ -12,45 +10,40 @@ AIEngine::AIEngine()
 {
 }
 
-// 转换为ePiece
-static ePiece toEPiece(Piece p) {
-    if (p == Piece::White) return WHITE;
-    if (p == Piece::Black) return BLACK;
-    return NONE;
-}
-
-static Piece convertPiece(ePiece p) {
-    if (p == WHITE) return Piece::White;
-    if (p == BLACK) return Piece::Black;
-    return Piece::None;
-}
-
 Position AIEngine::calculateBestMove(GameBoard& board, Piece aiPiece) {
-    // 如果棋盘为空，返回中心点
+    // 棋盘为空时落中心点
     if (board.isEmpty()) {
         return Position(7, 7);
     }
 
-    // 将GameBoard转换为ePiece数组供原有函数使用
-    ePiece arrBoard[15][15];
-    const auto& src = board.board();
-    for (int i = 0; i < 15; ++i) {
-        for (int j = 0; j < 15; ++j) {
-            arrBoard[i][j] = toEPiece(src[i][j]);
+    best_move_ = Position::Invalid();
+
+    auto candidates = generateCandidates(board, aiPiece);
+    if (candidates.size() > 10) candidates.resize(10);
+    if (candidates.empty()) return Position(7, 7);
+
+    int maxScore = std::numeric_limits<int>::min();
+    int alpha = std::numeric_limits<int>::min();
+    const int beta = std::numeric_limits<int>::max();
+
+    for (const auto& candidate : candidates) {
+        if (board.placePiece(candidate.position, aiPiece)) {
+            // 直接获胜则立即返回
+            if (win_detector_.checkWin(board, aiPiece)) {
+                board.removePiece(candidate.position);
+                return candidate.position;
+            }
+            int s = minSearch(board, search_depth_ - 1, alpha, beta, aiPiece);
+            board.removePiece(candidate.position);
+            if (s > maxScore) {
+                maxScore = s;
+                best_move_ = candidate.position;
+            }
+            alpha = std::max(alpha, s);
         }
     }
 
-    // 使用原有ComputerMove逻辑
-    ComputerMove computer;
-    computer.MaxMinSearch(arrBoard, search_depth_);
-
-    // 获取结果并更新棋盘
-    Position result(computer.Y(), computer.X());
-    if (result.isValid()) {
-        best_move_ = result;
-    }
-
-    return result;
+    return best_move_.isValid() ? best_move_ : candidates[0].position;
 }
 
 bool AIEngine::checkWin(const GameBoard& board, Piece piece) {
