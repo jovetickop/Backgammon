@@ -20,6 +20,8 @@ public:
 private slots:
 	void UpdatePreview();
 	void AcceptLogin();
+	// 删除当前选中的用户档案
+	void DeleteCurrentProfile();
 
 private:
 	PlayerStatsStore *m_pStatsStore;

@@ -43,6 +43,10 @@ public:
 
 	PlayerRecord RecordForUser(const QString &userName) const;
 	void SaveRecord(const PlayerRecord &record);
+	// 删除指定用户档案（不存在时无操作）
+	void DeleteRecord(const QString &userName);
+	// 所有已知用户名列表
+	QStringList AllUsers() const;
 
 	QString LastUser() const;
 	QStringList RecentUsers() const;

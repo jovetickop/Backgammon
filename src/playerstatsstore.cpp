@@ -276,6 +276,24 @@ void PlayerStatsStore::TouchRecentUser(const QString &userName)
 		m_recentUsers.removeLast();
 }
 
+void PlayerStatsStore::DeleteRecord(const QString &userName)
+{
+	const QString key = NormalizeUserName(userName);
+	m_records.remove(key);
+	// 同步从最近用户列表移除
+	for (int i = m_recentUsers.size() - 1; i >= 0; --i)
+		if (NormalizeUserName(m_recentUsers[i]) == key)
+			m_recentUsers.removeAt(i);
+	if (NormalizeUserName(m_lastUser) == key)
+		m_lastUser.clear();
+	Save();
+}
+
+QStringList PlayerStatsStore::AllUsers() const
+{
+	return m_records.keys();
+}
+
 QString PlayerStatsStore::StoragePath() const
 {
 	return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/players.json";

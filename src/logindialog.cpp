@@ -2,6 +2,7 @@
 
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QMessageBox>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
@@ -202,9 +203,11 @@ LoginDialog::LoginDialog(PlayerStatsStore *statsStore, QWidget *parent)
 	QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal, card);
 	m_pLoginButton = buttonBox->addButton(QString::fromUtf8(u8"进入对局"), QDialogButtonBox::AcceptRole);
 	m_pLoginButton->setObjectName("loginButton");
+	QPushButton *deleteButton = buttonBox->addButton(QString::fromUtf8(u8"删除档案"), QDialogButtonBox::DestructiveRole);
 	QPushButton *cancelButton = buttonBox->addButton(QString::fromUtf8(u8"退出"), QDialogButtonBox::RejectRole);
 	QObject::connect(m_pLoginButton, &QPushButton::clicked, this, &LoginDialog::AcceptLogin);
 	QObject::connect(cancelButton, &QPushButton::clicked, this, &QDialog::reject);
+	QObject::connect(deleteButton, &QPushButton::clicked, this, &LoginDialog::DeleteCurrentProfile);
 	cardLayout->addWidget(buttonBox);
 
 	QObject::connect(m_pUserNameCombo, &QComboBox::currentTextChanged, this, &LoginDialog::UpdatePreview);
@@ -255,4 +258,35 @@ void LoginDialog::AcceptLogin()
 		return;
 
 	accept();
+}
+
+void LoginDialog::DeleteCurrentProfile()
+{
+	const QString name = UserName();
+	if (name.isEmpty() || !m_pStatsStore)
+		return;
+
+	const PlayerRecord rec = m_pStatsStore->RecordForUser(name);
+	const int total = rec.wins + rec.losses;
+	if (total == 0 && rec.games.isEmpty()) {
+		QMessageBox::information(this,
+			QString::fromUtf8(u8"删除档案"),
+			QString::fromUtf8(u8"该用户没有历史数据，无需删除。"));
+		return;
+	}
+
+	const auto btn = QMessageBox::warning(this,
+		QString::fromUtf8(u8"删除档案"),
+		QString::fromUtf8(u8"确定删除用户 \"%1\" 的全部战绩？此操作不可恢复。").arg(name),
+		QMessageBox::Yes | QMessageBox::No);
+	if (btn != QMessageBox::Yes)
+		return;
+
+	m_pStatsStore->DeleteRecord(name);
+	// 从下拉框中移除该项
+	const int idx = m_pUserNameCombo->findText(name, Qt::MatchFixedString | Qt::MatchCaseSensitive);
+	if (idx >= 0)
+		m_pUserNameCombo->removeItem(idx);
+	m_pUserNameCombo->clearEditText();
+	UpdatePreview();
 }
