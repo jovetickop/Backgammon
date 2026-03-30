@@ -16,7 +16,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 # 强制使用 Qt5 Widgets
-find_package(Qt5 REQUIRED COMPONENTS Widgets Multimedia Sql Test)
+find_package(Qt5 REQUIRED COMPONENTS Widgets Multimedia Sql Test Network)
 
 # 启用测试
 enable_testing()
@@ -94,6 +94,7 @@ target_link_libraries(Backgammon PRIVATE
     Qt5::Gui
     Qt5::Multimedia
     Qt5::Sql
+    Qt5::Network
 )
 
 # 简单的单元测试（使用GoogleTest）
