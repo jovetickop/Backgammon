@@ -286,6 +286,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_pAchievementManager(nullptr)
 	, m_nConsecutiveWins(0)
 	, m_bOpponentHadOpenFour(false)
+	, m_currentProfile{2, "普通", 8, 2000, 0.0, 0.8, 0.7, "默认"}
 	, m_nCursorRow(7)
 	, m_nCursorCol(7)
 	, m_pCursorItem(nullptr)
@@ -705,6 +706,11 @@ void Backgammon::SetDifficulty(int depth)
 {
 	m_nDeep = depth;
 	m_nPreferredDeep = depth;
+	// 同步难度配置：根据深度选择最接近的难度档位。
+	m_currentProfile = m_difficultyConfig.getProfile(
+		depth <= 2 ? 1 : depth <= 4 ? 2 : depth <= 6 ? 3 : 4);
+	// 以实际深度覆盖配置中的深度（支持自定义步数）。
+	m_currentProfile.search_depth = depth;
 }
 
 void Backgammon::slotDifficultyTextChanged(const QString &text)
@@ -1001,7 +1007,8 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 	// 通过 AiWorker 异步计算 AI 落子，禁止玩家在此期间操作
 	m_bAiThinking = true;
 	m_bStarted = false;
-	m_pAiWorker->SetBoard(m_arrBoard, m_nDeep);
+	// 使用难度配置人格化 AI（包含错误率、时间限制等参数）
+	m_pAiWorker->SetBoardWithProfile(m_arrBoard, m_currentProfile);
 	QMetaObject::invokeMethod(m_pAiWorker, "Run", Qt::QueuedConnection);
 }
 

@@ -10,6 +10,7 @@
 #include "playerstatsstore.h"
 #include "ui_backgammon.h"
 #include "types.h"
+#include "domain/services/difficulty_config.h"
 #include "domain/services/win_detector.h"
 #include "sgf_serializer.h"
 #include "gameserver.h"
@@ -167,6 +168,10 @@ private:
 	int m_nConsecutiveWins;
 	// 本局对手是否出现过连四（被玩家防守）
 	bool m_bOpponentHadOpenFour;
+
+	// 当前难度配置（用于人格化 AI 行为）
+	game_core::DifficultyConfig m_difficultyConfig;
+	game_core::DifficultyProfile m_currentProfile;
 
 	// 键盘光标位置（行列，初始在棋盘中心）
 	int m_nCursorRow;
