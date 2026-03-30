@@ -290,6 +290,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 
 	ui.starterComboBox->addItem(QString::fromUtf8("\u6211\u5148\u624B\uFF08\u9ED1\u68CB\uFF09"), "player");
 	ui.starterComboBox->addItem(QString::fromUtf8("AI \u5148\u624B\uFF08\u767D\u68CB\uFF09"), "ai");
+	ui.starterComboBox->addItem(QString::fromUtf8("\u53CC\u4EBA\u5BF9\u6218"), "pvp");
 	const int starterIndex = m_bPlayerStarts ? 0 : 1;
 	ui.starterComboBox->setCurrentIndex(starterIndex);
 
@@ -600,7 +601,8 @@ void Backgammon::slotStartBtnClicked()
 		// 游戏开始时启用悔棋按钮（玩家落子后才真正有棋可悔，但提前启用保持界面一致）。
 		ui.undoButton->setEnabled(true);
 		ResetWinRateEstimate();
-		if (!m_bPlayerStarts)
+		// PvP 模式下黑方始终先手，无需 AI 开局落子。
+		if (!m_bPlayerStarts && !m_bPvPMode)
 			PlaceAiOpeningMove();
 		return;
 	}
@@ -627,8 +629,12 @@ void Backgammon::slotStartBtnClicked()
 
 void Backgammon::slotStarterChanged(int)
 {
-	m_bPlayerStarts = (CurrentStarterPreference() == "player");
-	m_playerRecord.preferredStarter = CurrentStarterPreference();
+	const QString pref = CurrentStarterPreference();
+	m_bPvPMode = (pref == "pvp");
+	m_bPlayerStarts = (pref == "player");
+	m_playerRecord.preferredStarter = pref;
+	// PvP 模式下隐藏难度选择，PvE 模式下显示。
+	ui.difficultyComboBox->setVisible(!m_bPvPMode);
 	PersistPlayerRecord();
 	UpdateStatsPanel();
 }
@@ -809,6 +815,41 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 	if (m_arrBoard[row][col] != NONE)
 	{
 		QMessageBox::warning(this, QString::fromUtf8("\u8B66\u544A"), QString::fromUtf8("\u65E0\u6CD5\u843D\u5B50\uFF01"));
+		return;
+	}
+
+	if (m_bPvPMode)
+	{
+		// PvP 模式：根据当前已落子数奇偶决定落黑/白子。
+		const bool isBlackTurn = (m_currentGameMoves.size() % 2 == 0);
+		if (isBlackTurn)
+		{
+			PlacePlayerMove(row, col);
+			UpdateWinRateEstimate(WHITE);
+			const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+			if (m_winDetector.checkWin(gboard, game_core::Piece::Black))
+			{
+				RecordGameResult(BLACK);
+				ResultDialog(this, true, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
+				FinishRoundCleanup();
+				return;
+			}
+		}
+		else
+		{
+			PlaceAiMove(row, col);
+			UpdateWinRateEstimate(BLACK);
+			const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+			if (m_winDetector.checkWin(gboard, game_core::Piece::White))
+			{
+				RecordGameResult(WHITE);
+				ResultDialog(this, false, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
+				FinishRoundCleanup();
+				return;
+			}
+		}
+		// PvP 模式刷新轮次提示。
+		UpdateStatsPanel();
 		return;
 	}
 

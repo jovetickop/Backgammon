@@ -6,6 +6,7 @@
 #include "domain/aggregates/game_board.h"
 #include "domain/services/win_detector.h"
 #include "domain/services/board_evaluator.h"
+#include "domain/services/ai_engine.h"
 
 using namespace game_core;
 
@@ -661,6 +662,413 @@ TEST_F(EvaluationAdvancedTest, EvaluateMove_DefenseValue_Positive)
     int baseScore = EvaluateBoard(); // 未落子时的棋盘分值
     // 落子后白方分值应减小（黑棋扩张+白棋被阻），因此 EvaluateMove 结果 < baseScore。
     EXPECT_LT(blackDefenseScore, baseScore);
+}
+
+// ==================== GameBoard 测试 ====================
+
+class GameBoardTest : public ::testing::Test
+{
+protected:
+    GameBoard board;
+};
+
+TEST_F(GameBoardTest, InitialBoard_IsEmpty)
+{
+    EXPECT_TRUE(board.isEmpty());
+    EXPECT_EQ(board.moveCount(), 0);
+    EXPECT_EQ(board.pieceCount(Piece::Black), 0);
+    EXPECT_EQ(board.pieceCount(Piece::White), 0);
+}
+
+TEST_F(GameBoardTest, PlacePiece_Success)
+{
+    EXPECT_TRUE(board.placePiece(Position(7, 7), Piece::Black));
+    EXPECT_EQ(board.getPiece(Position(7, 7)), Piece::Black);
+    EXPECT_EQ(board.moveCount(), 1);
+    EXPECT_EQ(board.pieceCount(Piece::Black), 1);
+}
+
+TEST_F(GameBoardTest, PlacePiece_OccupiedPosition_Fails)
+{
+    board.placePiece(Position(7, 7), Piece::Black);
+    // 同一位置再次落子应失败。
+    EXPECT_FALSE(board.placePiece(Position(7, 7), Piece::White));
+    EXPECT_EQ(board.moveCount(), 1);
+}
+
+TEST_F(GameBoardTest, PlacePiece_InvalidPosition_Fails)
+{
+    EXPECT_FALSE(board.placePiece(Position(-1, 0), Piece::Black));
+    EXPECT_FALSE(board.placePiece(Position(0, 15), Piece::White));
+    EXPECT_EQ(board.moveCount(), 0);
+}
+
+TEST_F(GameBoardTest, PlacePiece_NoPiece_Fails)
+{
+    EXPECT_FALSE(board.placePiece(Position(7, 7), Piece::None));
+}
+
+TEST_F(GameBoardTest, RemovePiece_RestoresEmpty)
+{
+    board.placePiece(Position(5, 5), Piece::White);
+    board.removePiece(Position(5, 5));
+    EXPECT_EQ(board.getPiece(Position(5, 5)), Piece::None);
+    EXPECT_EQ(board.moveCount(), 0);
+    EXPECT_EQ(board.pieceCount(Piece::White), 0);
+}
+
+TEST_F(GameBoardTest, RemovePiece_UpdatesLastMove)
+{
+    board.placePiece(Position(3, 3), Piece::Black);
+    board.placePiece(Position(4, 4), Piece::White);
+    board.removePiece(Position(4, 4));
+    // 最后落子应回退到 (3,3)。
+    EXPECT_EQ(board.lastMove(), Position(3, 3));
+}
+
+TEST_F(GameBoardTest, CanPlace_EmptyIsTrue)
+{
+    EXPECT_TRUE(board.canPlace(Position(0, 0)));
+    EXPECT_TRUE(board.canPlace(Position(14, 14)));
+}
+
+TEST_F(GameBoardTest, CanPlace_OccupiedIsFalse)
+{
+    board.placePiece(Position(7, 7), Piece::Black);
+    EXPECT_FALSE(board.canPlace(Position(7, 7)));
+}
+
+TEST_F(GameBoardTest, CanPlace_InvalidIsFalse)
+{
+    EXPECT_FALSE(board.canPlace(Position(-1, 0)));
+    EXPECT_FALSE(board.canPlace(Position(15, 15)));
+}
+
+TEST_F(GameBoardTest, Reset_ClearsAllState)
+{
+    board.placePiece(Position(7, 7), Piece::Black);
+    board.placePiece(Position(7, 8), Piece::White);
+    board.reset();
+    EXPECT_TRUE(board.isEmpty());
+    EXPECT_EQ(board.moveCount(), 0);
+    EXPECT_EQ(board.pieceCount(Piece::Black), 0);
+    EXPECT_EQ(board.pieceCount(Piece::White), 0);
+    EXPECT_EQ(board.getPiece(Position(7, 7)), Piece::None);
+}
+
+TEST_F(GameBoardTest, MoveHistory_TracksOrder)
+{
+    board.placePiece(Position(0, 0), Piece::Black);
+    board.placePiece(Position(1, 1), Piece::White);
+    board.placePiece(Position(2, 2), Piece::Black);
+    EXPECT_EQ(board.moveHistory().size(), 3u);
+    EXPECT_EQ(board.lastMove(), Position(2, 2));
+}
+
+TEST_F(GameBoardTest, PieceCount_TracksCorrectly)
+{
+    board.placePiece(Position(0, 0), Piece::Black);
+    board.placePiece(Position(1, 1), Piece::Black);
+    board.placePiece(Position(2, 2), Piece::White);
+    EXPECT_EQ(board.pieceCount(Piece::Black), 2);
+    EXPECT_EQ(board.pieceCount(Piece::White), 1);
+    EXPECT_EQ(board.pieceCount(Piece::None), 0);
+}
+
+TEST_F(GameBoardTest, GetPiece_OutOfBounds_ReturnsNone)
+{
+    EXPECT_EQ(board.getPiece(Position(-1, 0)), Piece::None);
+    EXPECT_EQ(board.getPiece(Position(15, 15)), Piece::None);
+}
+
+// ==================== WinDetector::checkWinner 测试 ====================
+
+TEST(WinDetectorTest, CheckWinner_EmptyBoard_ReturnsNone)
+{
+    WinDetector wd;
+    GameBoard b;
+    EXPECT_EQ(wd.checkWinner(b), Piece::None);
+}
+
+TEST(WinDetectorTest, CheckWinner_BlackWins)
+{
+    WinDetector wd;
+    GameBoard b;
+    for (int i = 0; i < 5; ++i) b.placePiece(Position(7, i), Piece::Black);
+    EXPECT_EQ(wd.checkWinner(b), Piece::Black);
+}
+
+TEST(WinDetectorTest, CheckWinner_WhiteWins)
+{
+    WinDetector wd;
+    GameBoard b;
+    for (int i = 0; i < 5; ++i) b.placePiece(Position(i, 7), Piece::White);
+    EXPECT_EQ(wd.checkWinner(b), Piece::White);
+}
+
+TEST(WinDetectorTest, CheckWinner_NoWinner_ReturnsNone)
+{
+    WinDetector wd;
+    GameBoard b;
+    b.placePiece(Position(7, 7), Piece::Black);
+    b.placePiece(Position(7, 8), Piece::White);
+    EXPECT_EQ(wd.checkWinner(b), Piece::None);
+}
+
+// ==================== AIEngine 测试 ====================
+
+class AIEngineTest : public ::testing::Test
+{
+protected:
+    AIEngine engine;
+    GameBoard board;
+
+    void SetUp() override
+    {
+        engine.setSearchDepth(2); // 浅搜索以加快测试速度。
+    }
+};
+
+TEST_F(AIEngineTest, SearchDepth_SetAndGet)
+{
+    engine.setSearchDepth(4);
+    EXPECT_EQ(engine.searchDepth(), 4);
+}
+
+TEST_F(AIEngineTest, CalculateBestMove_EmptyBoard_ReturnsValidPosition)
+{
+    // 空棋盘上 AI 应返回有效位置（通常为中心）。
+    Position pos = engine.calculateBestMove(board, Piece::Black);
+    EXPECT_TRUE(pos.isValid());
+}
+
+TEST_F(AIEngineTest, CalculateBestMove_BlocksOpponentFive)
+{
+    // 黑棋已有四连，AI（白棋）应封堵。
+    for (int i = 3; i <= 6; ++i) board.placePiece(Position(7, i), Piece::Black);
+    Position pos = engine.calculateBestMove(board, Piece::White);
+    // AI 应选择 col 2 或 col 7 来阻止黑棋五连。
+    bool blocksLeft  = (pos == Position(7, 2));
+    bool blocksRight = (pos == Position(7, 7));
+    EXPECT_TRUE(blocksLeft || blocksRight);
+}
+
+TEST_F(AIEngineTest, CalculateBestMove_CompletesOwnFive)
+{
+    // 白棋已有四连，AI 应直接完成五连而非做其他事。
+    for (int i = 3; i <= 6; ++i) board.placePiece(Position(7, i), Piece::White);
+    Position pos = engine.calculateBestMove(board, Piece::White);
+    bool winsLeft  = (pos == Position(7, 2));
+    bool winsRight = (pos == Position(7, 7));
+    EXPECT_TRUE(winsLeft || winsRight);
+}
+
+TEST_F(AIEngineTest, CheckWin_AfterFive_ReturnsTrue)
+{
+    for (int i = 0; i < 5; ++i) board.placePiece(Position(7, i), Piece::Black);
+    EXPECT_TRUE(engine.checkWin(board, Piece::Black));
+    EXPECT_FALSE(engine.checkWin(board, Piece::White));
+}
+
+TEST_F(AIEngineTest, CheckWin_EmptyBoard_ReturnsFalse)
+{
+    EXPECT_FALSE(engine.checkWin(board, Piece::Black));
+    EXPECT_FALSE(engine.checkWin(board, Piece::White));
+}
+
+// ==================== Position 测试 ====================
+
+TEST(PositionTest, IsValid_InBounds)
+{
+    EXPECT_TRUE(Position(0, 0).isValid());
+    EXPECT_TRUE(Position(14, 14).isValid());
+    EXPECT_TRUE(Position(7, 7).isValid());
+}
+
+TEST(PositionTest, IsValid_OutOfBounds)
+{
+    EXPECT_FALSE(Position(-1, 0).isValid());
+    EXPECT_FALSE(Position(0, -1).isValid());
+    EXPECT_FALSE(Position(15, 0).isValid());
+    EXPECT_FALSE(Position(0, 15).isValid());
+}
+
+TEST(PositionTest, Invalid_IsNotValid)
+{
+    EXPECT_FALSE(Position::Invalid().isValid());
+}
+
+TEST(PositionTest, Equality)
+{
+    EXPECT_EQ(Position(3, 4), Position(3, 4));
+    EXPECT_NE(Position(3, 4), Position(4, 3));
+}
+
+TEST(PositionTest, IsPlayable_ExcludesBorders)
+{
+    EXPECT_FALSE(Position(0, 7).isPlayable());
+    EXPECT_FALSE(Position(14, 7).isPlayable());
+    EXPECT_FALSE(Position(7, 0).isPlayable());
+    EXPECT_FALSE(Position(7, 14).isPlayable());
+    EXPECT_TRUE(Position(7, 7).isPlayable());
+}
+
+// ==================== ZobristHash + 置换表 测试（T014）====================
+
+#include "domain/services/transposition_table.h"
+
+TEST(ZobristHashTest, EmptyBoard_HashIsZero)
+{
+    ZobristHash zh;
+    GameBoard board;
+    EXPECT_EQ(zh.compute(board), 0ULL);
+}
+
+TEST(ZobristHashTest, PlacePiece_HashChanges)
+{
+    ZobristHash zh;
+    GameBoard board;
+    uint64_t h0 = zh.compute(board);
+    board.placePiece(Position(7, 7), Piece::White);
+    uint64_t h1 = zh.compute(board);
+    EXPECT_NE(h0, h1);
+}
+
+TEST(ZobristHashTest, IncrementalUpdate_MatchesFullCompute)
+{
+    ZobristHash zh;
+    GameBoard board;
+    uint64_t hash = zh.compute(board);
+    hash = zh.update(hash, 7, 7, Piece::White);
+    board.placePiece(Position(7, 7), Piece::White);
+    EXPECT_EQ(hash, zh.compute(board));
+}
+
+TEST(ZobristHashTest, PlaceAndRemove_RestoresHash)
+{
+    ZobristHash zh;
+    uint64_t h0 = 0;
+    uint64_t h1 = zh.update(h0, 3, 5, Piece::Black);
+    uint64_t h2 = zh.update(h1, 3, 5, Piece::Black);
+    EXPECT_EQ(h0, h2);
+}
+
+TEST(ZobristHashTest, DifferentPieces_DifferentHash)
+{
+    ZobristHash zh;
+    uint64_t hw = zh.update(0, 7, 7, Piece::White);
+    uint64_t hb = zh.update(0, 7, 7, Piece::Black);
+    EXPECT_NE(hw, hb);
+}
+
+TEST(TranspositionTableTest, StoreAndProbe_Exact)
+{
+    TranspositionTable tt;
+    tt.store(12345ULL, 100, 4, TTFlag::Exact);
+    auto e = tt.probe(12345ULL, 4);
+    ASSERT_TRUE(e.has_value());
+    EXPECT_EQ(e->score, 100);
+    EXPECT_EQ(e->flag, TTFlag::Exact);
+}
+
+TEST(TranspositionTableTest, Probe_MissOnDepthTooLow)
+{
+    TranspositionTable tt;
+    tt.store(99ULL, 50, 3, TTFlag::Exact);
+    EXPECT_FALSE(tt.probe(99ULL, 4).has_value());
+}
+
+TEST(TranspositionTableTest, Probe_HitOnEqualDepth)
+{
+    TranspositionTable tt;
+    tt.store(99ULL, 50, 3, TTFlag::Exact);
+    EXPECT_TRUE(tt.probe(99ULL, 3).has_value());
+}
+
+TEST(TranspositionTableTest, Clear_RemovesEntries)
+{
+    TranspositionTable tt;
+    tt.store(1ULL, 10, 2, TTFlag::Exact);
+    tt.clear();
+    EXPECT_FALSE(tt.probe(1ULL, 2).has_value());
+}
+
+TEST(TranspositionTableTest, HitCount_Increments)
+{
+    TranspositionTable tt;
+    tt.store(42ULL, 77, 3, TTFlag::Exact);
+    tt.resetStats();
+    tt.probe(42ULL, 3);
+    tt.probe(42ULL, 3);
+    EXPECT_EQ(tt.hitCount(), 2ULL);
+}
+
+// ==================== AIEngine 迭代加深+时间控制 测试（T015）====================
+
+#include "domain/services/ai_engine.h"
+#include <chrono>
+
+TEST(AIEngineIDDFSTest, EmptyBoard_ReturnsCenterOrValid)
+{
+    AIEngine engine;
+    GameBoard board;
+    Position pos = engine.calculateBestMove(board, Piece::White);
+    EXPECT_EQ(pos.row(), 7);
+    EXPECT_EQ(pos.col(), 7);
+}
+
+TEST(AIEngineIDDFSTest, ImmediateWin_PicksWinningMove)
+{
+    AIEngine engine;
+    engine.setTimeLimitMs(3000);
+    engine.setSearchDepth(4);
+    GameBoard board;
+    for (int c = 3; c <= 6; ++c)
+        board.placePiece(Position(7, c), Piece::White);
+    Position pos = engine.calculateBestMove(board, Piece::White);
+    GameBoard test = board;
+    test.placePiece(pos, Piece::White);
+    WinDetector wd;
+    EXPECT_TRUE(wd.checkWin(test, Piece::White));
+}
+
+TEST(AIEngineIDDFSTest, TimeLimitRespected)
+{
+    AIEngine engine;
+    engine.setTimeLimitMs(500);
+    engine.setSearchDepth(8);
+    GameBoard board;
+    board.placePiece(Position(7, 7), Piece::Black);
+    board.placePiece(Position(7, 8), Piece::White);
+    board.placePiece(Position(8, 7), Piece::Black);
+    auto start = std::chrono::steady_clock::now();
+    Position pos = engine.calculateBestMove(board, Piece::White);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count();
+    EXPECT_LT(ms, 700);
+    EXPECT_TRUE(pos.isValid());
+}
+
+TEST(AIEngineIDDFSTest, Setters_Applied)
+{
+    AIEngine engine;
+    engine.setSearchDepth(3);
+    engine.setTimeLimitMs(1500);
+    EXPECT_EQ(engine.searchDepth(), 3);
+    EXPECT_EQ(engine.timeLimitMs(), 1500);
+}
+
+TEST(AIEngineIDDFSTest, ClearTT_ResetsHitCount)
+{
+    AIEngine engine;
+    engine.setTimeLimitMs(500);
+    engine.setSearchDepth(3);
+    GameBoard board;
+    board.placePiece(Position(7, 7), Piece::Black);
+    board.placePiece(Position(7, 8), Piece::White);
+    engine.calculateBestMove(board, Piece::White);
+    engine.clearTranspositionTable();
+    EXPECT_EQ(engine.ttHitCount(), 0ULL);
 }
 
 // ==================== 主函数（提供 QCoreApplication）====================

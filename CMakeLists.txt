@@ -38,6 +38,7 @@ set(BACKGAMMON_SOURCES
     src/domain/services/win_detector.cpp
     src/domain/services/board_evaluator.cpp
     src/domain/services/ai_engine.cpp
+    src/domain/services/transposition_table.cpp
     # DDD 应用层
     src/application/game_service.cpp
 )
@@ -110,6 +111,7 @@ set(UNIT_TEST_SOURCES
     src/domain/services/win_detector.cpp
     src/domain/services/board_evaluator.cpp
     src/domain/services/ai_engine.cpp
+    src/domain/services/transposition_table.cpp
     src/application/game_service.cpp
 )
 
