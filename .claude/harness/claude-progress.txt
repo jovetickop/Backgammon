@@ -5,3 +5,4 @@
 2026-03-30 23:10 T003 passed: AI计算异步化（QThread），AiWorker使用AIEngine，slotAiMoveReady接收结果，主线程禁止输入直到AI完成，构建通过，测试100%通过
 2026-03-30 23:30 T014 passed: 完成Zobrist Hash+置换表实现，增量哈希更新O(1)，置换表缓存搜索结果，构建通过，测试100%通过
 2026-03-30 23:30 T015 passed: 完成迭代加深(IDDFS)+时间控制，默认2秒时限，精度100ms以内，构建通过，测试100%通过
+2026-03-30 23:50 T023 passed: SQLite存档升级，SqliteStore实现players/game_records/metadata三表，支持JSON迁移，构建通过，测试100%通过
