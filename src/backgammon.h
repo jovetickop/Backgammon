@@ -1,4 +1,4 @@
-#ifndef BACKGAMMON_H
+﻿#ifndef BACKGAMMON_H
 #define BACKGAMMON_H
 
 #include <QtWidgets/QMainWindow>
@@ -46,6 +46,7 @@ public slots:
 	void slotDifficultyChanged(int index);
 	void slotDifficultyTextChanged(const QString &text);
 	void slotHistoryBtnClicked();
+	void slotUndoBtnClicked();
 	void slotThinkToggleClicked();
 
 private:
@@ -79,6 +80,7 @@ private:
 	QString m_sCurrentUser;
 	bool m_bStarted;
 	bool m_bPlayerStarts;
+	bool m_bPvPMode;  // 鍙屼汉瀵规垬妯″紡
 	judgeWinner* m_pJugdeWinner;
 	Evaluation *m_pEvaluation;
 	int m_nPlayerWins;

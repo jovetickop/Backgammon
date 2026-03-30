@@ -1,4 +1,4 @@
-#include "backgammon.h"
+﻿#include "backgammon.h"
 
 #include <QDateTime>
 #include <QDialog>
@@ -72,8 +72,8 @@ namespace
 	QString StarterText(bool playerStarts)
 	{
 		return playerStarts
-			? QString::fromUtf8(u8"\u6211\u5148\u624B\uFF08\u9ED1\u68CB\uFF09")
-			: QString::fromUtf8(u8"AI \u5148\u624B\uFF08\u767D\u68CB\uFF09");
+			? QString::fromUtf8("\u6211\u5148\u624B\uFF08\u9ED1\u68CB\uFF09")
+			: QString::fromUtf8("AI \u5148\u624B\uFF08\u767D\u68CB\uFF09");
 	}
 
 	void ShowAiLogicDialog(QWidget *parent, int searchDepth)
@@ -81,7 +81,7 @@ namespace
 		QDialog dialog(parent);
 		dialog.setModal(true);
 		dialog.setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-		dialog.setWindowTitle(QString::fromUtf8(u8"AI \u8FD0\u884C\u903B\u8F91"));
+		dialog.setWindowTitle(QString::fromUtf8("AI \u8FD0\u884C\u903B\u8F91"));
 		dialog.setFixedSize(640, 620);
 		dialog.setStyleSheet(
 			"* { font-family: \"Source Han Sans CN\", \"Noto Sans CJK SC\", \"Microsoft YaHei\", sans-serif; }"
@@ -140,80 +140,80 @@ namespace
 		cardLayout->setContentsMargins(28, 28, 28, 24);
 		cardLayout->setSpacing(12);
 
-		QLabel *title = new QLabel(QString::fromUtf8(u8"AI \u51B3\u7B56\u8BF4\u660E"), card);
+		QLabel *title = new QLabel(QString::fromUtf8("AI \u51B3\u7B56\u8BF4\u660E"), card);
 		title->setObjectName("title");
 		cardLayout->addWidget(title);
 
 		QLabel *subtitle = new QLabel(
-			QString::fromUtf8(u8"\u5F53\u524D\u641C\u7D22\u6DF1\u5EA6\uFF1A%1 \u5C42\u3002\u6BCF\u5C42\u8868\u793A\u4E00\u6B21\u8F6E\u6D41\uFF08AI\u548C\u73A9\u5BB6\u5404\u4E00\u6B65\uFF09\uFF0C\u6DF1\u5EA6\u8D8A\u5927 AI \u601D\u8003\u8D8A\u6DF1\uFF0C\u4F46\u4E5F\u8D8A\u6162\u3002").arg(searchDepth),
+			QString::fromUtf8("\u5F53\u524D\u641C\u7D22\u6DF1\u5EA6\uFF1A%1 \u5C42\u3002\u6BCF\u5C42\u8868\u793A\u4E00\u6B21\u8F6E\u6D41\uFF08AI\u548C\u73A9\u5BB6\u5404\u4E00\u6B65\uFF09\uFF0C\u6DF1\u5EA6\u8D8A\u5927 AI \u601D\u8003\u8D8A\u6DF1\uFF0C\u4F46\u4E5F\u8D8A\u6162\u3002").arg(searchDepth),
 			card);
 		subtitle->setObjectName("subtitle");
 		subtitle->setWordWrap(true);
 		cardLayout->addWidget(subtitle);
 
 		QLabel *logicOne = new QLabel(
-			QString::fromUtf8(u8"1. \u7D27\u6025\u5224\u65AD\uFF08\u4F18\u5148\u7EA7\u6700\u9AD8\uFF09\n"
-				u8"AI \u6BCF\u6B21\u843D\u5B50\u524D\u4F1A\u5148\u68C0\u67E5\u7D27\u6025\u60C5\u51B5\uFF1A"
-				u8"\u81EA\u5DF1\u80FD\u5426\u76F4\u63A5\u4E94\u8FDE\u83B7\u80DC\uFF1F\u5BF9\u624B\u662F\u5426\u5DF2\u7ECF\u6709\u51B2\u56DB\u6216\u6D3B\u56DB\u9700\u8981\u5C01\u5835\uFF1F"
-				u8"\u8FD9\u4E9B\u4F1A\u8DF3\u8FC7\u641C\u7D22\u76F4\u63A5\u505A\u51FA\u53CD\u5E94\u3002"),
+			QString::fromUtf8("1. \u7D27\u6025\u5224\u65AD\uFF08\u4F18\u5148\u7EA7\u6700\u9AD8\uFF09\n"
+				"AI \u6BCF\u6B21\u843D\u5B50\u524D\u4F1A\u5148\u68C0\u67E5\u7D27\u6025\u60C5\u51B5\uFF1A"
+				"\u81EA\u5DF1\u80FD\u5426\u76F4\u63A5\u4E94\u8FDE\u83B7\u80DC\uFF1F\u5BF9\u624B\u662F\u5426\u5DF2\u7ECF\u6709\u51B2\u56DB\u6216\u6D3B\u56DB\u9700\u8981\u5C01\u5835\uFF1F"
+				"\u8FD9\u4E9B\u4F1A\u8DF3\u8FC7\u641C\u7D22\u76F4\u63A5\u505A\u51FA\u53CD\u5E94\u3002"),
 			card);
 		logicOne->setObjectName("section");
 		logicOne->setWordWrap(true);
 		cardLayout->addWidget(logicOne);
 
 		QLabel *logicTwo = new QLabel(
-			QString::fromUtf8(u8"2. \u6D3B\u4E09\u5FC5\u6740\u68C0\u6D4B\n"
-				u8"\u5982\u679C\u5BF9\u624B\u5728\u591A\u4E2A\u65B9\u5411\u540C\u65F6\u5F62\u6210\u6D3B\u4E09\uFF08\u4E09\u5B50\u8FDE\u7EBF\u4E14\u4E24\u7AEF\u5F00\u53E3\uFF09\uFF0C"
-				u8"AI \u4F1A\u8BC6\u522B\u8FD9\u79CD\u201C\u53CC\u6D3B\u4E09\u201D\u5FC5\u6740\u5C40\u9762\uFF0C"
-				u8"\u5E76\u4F18\u5148\u9009\u62E9\u80FD\u540C\u65F6\u62E6\u622A\u591A\u4E2A\u65B9\u5411\u7684\u4F4D\u7F6E\u3002"),
+			QString::fromUtf8("2. \u6D3B\u4E09\u5FC5\u6740\u68C0\u6D4B\n"
+				"\u5982\u679C\u5BF9\u624B\u5728\u591A\u4E2A\u65B9\u5411\u540C\u65F6\u5F62\u6210\u6D3B\u4E09\uFF08\u4E09\u5B50\u8FDE\u7EBF\u4E14\u4E24\u7AEF\u5F00\u53E3\uFF09\uFF0C"
+				"AI \u4F1A\u8BC6\u522B\u8FD9\u79CD\u201C\u53CC\u6D3B\u4E09\u201D\u5FC5\u6740\u5C40\u9762\uFF0C"
+				"\u5E76\u4F18\u5148\u9009\u62E9\u80FD\u540C\u65F6\u62E6\u622A\u591A\u4E2A\u65B9\u5411\u7684\u4F4D\u7F6E\u3002"),
 			card);
 		logicTwo->setObjectName("section");
 		logicTwo->setWordWrap(true);
 		cardLayout->addWidget(logicTwo);
 
 		QLabel *logicThree = new QLabel(
-			QString::fromUtf8(u8"3. \u5019\u9009\u70B9\u751F\u6210\n"
-				u8"\u53EA\u8003\u8651\u5DF2\u6709\u68CB\u5B50\u516B\u90BB\u57DF\u9644\u8FD1\u7684\u7A7A\u4F4D\uFF0C"
-				u8"\u907F\u514D\u5728\u79BB\u6218\u573A\u5F88\u8FDC\u7684\u4F4D\u7F6E\u6D6A\u8D39\u65F6\u95F4\u3002"),
+			QString::fromUtf8("3. \u5019\u9009\u70B9\u751F\u6210\n"
+				"\u53EA\u8003\u8651\u5DF2\u6709\u68CB\u5B50\u516B\u90BB\u57DF\u9644\u8FD1\u7684\u7A7A\u4F4D\uFF0C"
+				"\u907F\u514D\u5728\u79BB\u6218\u573A\u5F88\u8FDC\u7684\u4F4D\u7F6E\u6D6A\u8D39\u65F6\u95F4\u3002"),
 			card);
 		logicThree->setObjectName("section");
 		logicThree->setWordWrap(true);
 		cardLayout->addWidget(logicThree);
 
 		QLabel *logicFour = new QLabel(
-			QString::fromUtf8(u8"4. \u8BC4\u4F30\u6392\u5E8F\n"
-				u8"\u5BF9\u6BCF\u4E2A\u5019\u9009\u70B9\u8BA1\u7B97\u8FDB\u653B\u4EF7\u503C\u548C\u9632\u5B88\u4EF7\u503C\uFF0C"
-				u8"\u7EFC\u5408\u6392\u5E8F\u540E\u53EA\u641C\u7D22\u524D N \u4E2A\u6700\u6709\u4EF7\u503C\u7684\u70B9\uFF0C"
-				u8"\u8BA9 alpha-beta \u526A\u679D\u6548\u7387\u63D0\u5347\u6570\u500D\u3002"),
+			QString::fromUtf8("4. \u8BC4\u4F30\u6392\u5E8F\n"
+				"\u5BF9\u6BCF\u4E2A\u5019\u9009\u70B9\u8BA1\u7B97\u8FDB\u653B\u4EF7\u503C\u548C\u9632\u5B88\u4EF7\u503C\uFF0C"
+				"\u7EFC\u5408\u6392\u5E8F\u540E\u53EA\u641C\u7D22\u524D N \u4E2A\u6700\u6709\u4EF7\u503C\u7684\u70B9\uFF0C"
+				"\u8BA9 alpha-beta \u526A\u679D\u6548\u7387\u63D0\u5347\u6570\u500D\u3002"),
 			card);
 		logicFour->setObjectName("section");
 		logicFour->setWordWrap(true);
 		cardLayout->addWidget(logicFour);
 
 		QLabel *logicFive = new QLabel(
-			QString::fromUtf8(u8"5. \u6781\u5927\u6781\u5C0F\u641C\u7D22 + Alpha-Beta \u526A\u679D\n"
-				u8"AI \u843D\u5B50\u65F6\u5C3D\u91CF\u8BA9\u5C40\u9762\u5206\u6570\u66F4\u9AD8\uFF0C"
-				u8"\u73A9\u5BB6\u56DE\u5408\u5219\u5047\u8BBE\u4F60\u4F1A\u9009\u62E9\u6700\u538B\u5236 AI \u7684\u5E94\u624B\u3002"
-				u8"\u641C\u7D22\u4E2D\u63D0\u524D\u622A\u65AD\u4E0D\u53EF\u80FD\u66F4\u4F18\u7684\u5206\u652F\uFF0C\u63D0\u9AD8\u601D\u8003\u901F\u5EA6\u3002"),
+			QString::fromUtf8("5. \u6781\u5927\u6781\u5C0F\u641C\u7D22 + Alpha-Beta \u526A\u679D\n"
+				"AI \u843D\u5B50\u65F6\u5C3D\u91CF\u8BA9\u5C40\u9762\u5206\u6570\u66F4\u9AD8\uFF0C"
+				"\u73A9\u5BB6\u56DE\u5408\u5219\u5047\u8BBE\u4F60\u4F1A\u9009\u62E9\u6700\u538B\u5236 AI \u7684\u5E94\u624B\u3002"
+				"\u641C\u7D22\u4E2D\u63D0\u524D\u622A\u65AD\u4E0D\u53EF\u80FD\u66F4\u4F18\u7684\u5206\u652F\uFF0C\u63D0\u9AD8\u601D\u8003\u901F\u5EA6\u3002"),
 			card);
 		logicFive->setObjectName("section");
 		logicFive->setWordWrap(true);
 		cardLayout->addWidget(logicFive);
 
 		QLabel *logicSix = new QLabel(
-			QString::fromUtf8(u8"6. \u5C40\u9762\u8BC4\u4F30\n"
-				u8"\u8BC4\u4F30\u5668\u7EDF\u8BA1\u6D3B\u4E00\u3001\u6D3B\u4E8C\u3001\u6D3B\u4E09\u3001\u6D3B\u56DB\u3001\u51B2\u56DB\u3001\u4E94\u8FDE\u7B49\u68CB\u578B\u5206\u503C\uFF0C"
-				u8"\u7528\u201C\u767D\u65B9\u5206 - \u9ED1\u65B9\u5206\u201D\u5F97\u5230\u5C40\u9762\u4F18\u52BF\uFF0C"
-				u8"\u901A\u8FC7 S \u578B\u66F2\u7EBF\u6620\u5C04\u4E3A\u53F3\u4FA7\u80DC\u7387\u56FE\u7684\u767E\u5206\u6BD4\u3002"),
+			QString::fromUtf8("6. \u5C40\u9762\u8BC4\u4F30\n"
+				"\u8BC4\u4F30\u5668\u7EDF\u8BA1\u6D3B\u4E00\u3001\u6D3B\u4E8C\u3001\u6D3B\u4E09\u3001\u6D3B\u56DB\u3001\u51B2\u56DB\u3001\u4E94\u8FDE\u7B49\u68CB\u578B\u5206\u503C\uFF0C"
+				"\u7528\u201C\u767D\u65B9\u5206 - \u9ED1\u65B9\u5206\u201D\u5F97\u5230\u5C40\u9762\u4F18\u52BF\uFF0C"
+				"\u901A\u8FC7 S \u578B\u66F2\u7EBF\u6620\u5C04\u4E3A\u53F3\u4FA7\u80DC\u7387\u56FE\u7684\u767E\u5206\u6BD4\u3002"),
 			card);
 		logicSix->setObjectName("section");
 		logicSix->setWordWrap(true);
 		cardLayout->addWidget(logicSix);
 
 		QLabel *logicSeven = new QLabel(
-			QString::fromUtf8(u8"7. \u968F\u673A\u9009\u70B9\n"
-				u8"\u5982\u679C\u591A\u4E2A\u5019\u9009\u70B9\u540C\u5206\uFF0CAI \u4F1A\u968F\u673A\u9009\u62E9\u5176\u4E2D\u4E00\u4E2A\uFF0C"
-				u8"\u907F\u514D\u6BCF\u5C40\u90FD\u8D70\u5B8C\u5168\u76F8\u540C\u7684\u56FA\u5B9A\u5957\u8DEF\u3002"),
+			QString::fromUtf8("7. \u968F\u673A\u9009\u70B9\n"
+				"\u5982\u679C\u591A\u4E2A\u5019\u9009\u70B9\u540C\u5206\uFF0CAI \u4F1A\u968F\u673A\u9009\u62E9\u5176\u4E2D\u4E00\u4E2A\uFF0C"
+				"\u907F\u514D\u6BCF\u5C40\u90FD\u8D70\u5B8C\u5168\u76F8\u540C\u7684\u56FA\u5B9A\u5957\u8DEF\u3002"),
 			card);
 		logicSeven->setObjectName("section");
 		logicSeven->setWordWrap(true);
@@ -222,7 +222,7 @@ namespace
 		cardLayout->addStretch(1);
 
 		QDialogButtonBox *buttonBox = new QDialogButtonBox(Qt::Horizontal, card);
-		QPushButton *okButton = buttonBox->addButton(QString::fromUtf8(u8"\u77E5\u9053\u4E86"), QDialogButtonBox::AcceptRole);
+		QPushButton *okButton = buttonBox->addButton(QString::fromUtf8("\u77E5\u9053\u4E86"), QDialogButtonBox::AcceptRole);
 		QObject::connect(okButton, &QPushButton::clicked, &dialog, &QDialog::accept);
 		cardLayout->addWidget(buttonBox);
 
@@ -266,26 +266,26 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		(kLineMax - kLineMin) + 2 * kScenePadding,
 		(kLineMax - kLineMin) + 2 * kScenePadding);
 
-	ui.starterComboBox->addItem(QString::fromUtf8(u8"\u6211\u5148\u624B\uFF08\u9ED1\u68CB\uFF09"), "player");
-	ui.starterComboBox->addItem(QString::fromUtf8(u8"AI \u5148\u624B\uFF08\u767D\u68CB\uFF09"), "ai");
+	ui.starterComboBox->addItem(QString::fromUtf8("\u6211\u5148\u624B\uFF08\u9ED1\u68CB\uFF09"), "player");
+	ui.starterComboBox->addItem(QString::fromUtf8("AI \u5148\u624B\uFF08\u767D\u68CB\uFF09"), "ai");
 	const int starterIndex = m_bPlayerStarts ? 0 : 1;
 	ui.starterComboBox->setCurrentIndex(starterIndex);
 
 	// 难度设置（搜索步数）- 可编辑下拉框支持自定义步数
 	ui.difficultyComboBox->setEditable(true);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"2 \u6B65"), 2);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"4 \u6B65"), 4);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"6 \u6B65"), 6);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"8 \u6B65"), 8);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"10 \u6B65"), 10);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"12 \u6B65"), 12);
-	ui.difficultyComboBox->addItem(QString::fromUtf8(u8"14 \u6B65"), 14);
+	ui.difficultyComboBox->addItem(QString::fromUtf8("2 \u6B65"), 2);
+	ui.difficultyComboBox->addItem(QString::fromUtf8("4 \u6B65"), 4);
+	ui.difficultyComboBox->addItem(QString::fromUtf8("6 \u6B65"), 6);
+	ui.difficultyComboBox->addItem(QString::fromUtf8("8 \u6B65"), 8);
+	ui.difficultyComboBox->addItem(QString::fromUtf8("10 \u6B65"), 10);
+	ui.difficultyComboBox->addItem(QString::fromUtf8("12 \u6B65"), 12);
+	ui.difficultyComboBox->addItem(QString::fromUtf8("14 \u6B65"), 14);
 	ui.difficultyComboBox->setCurrentIndex(3); // 默认8步
-	ui.difficultyComboBox->setCurrentText(QString::fromUtf8(u8"8 \u6B65"));
+	ui.difficultyComboBox->setCurrentText(QString::fromUtf8("8 \u6B65"));
 	// 设置输入验证：只允许1-20的正整数
 	QIntValidator *validator = new QIntValidator(1, 50, this);
 	ui.difficultyComboBox->lineEdit()->setValidator(validator);
-	ui.difficultyComboBox->lineEdit()->setPlaceholderText(QString::fromUtf8(u8"\u8F93\u5165\u81EA\u5B9A\u4E49\u6B65\u6570 (1-50)"));
+	ui.difficultyComboBox->lineEdit()->setPlaceholderText(QString::fromUtf8("\u8F93\u5165\u81EA\u5B9A\u4E49\u6B65\u6570 (1-50)"));
 
 	// 样式 - 复用 starterComboBox 样式，整体字体加大
 	setStyleSheet(
@@ -393,7 +393,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 
 	// 创建"AI 思考"按钮并插入到左侧面板按钮行（row 0）。
 	// 使用 insertWidget 把按钮放在 aiInfoButton 之前（col 2 位置，原 aiInfoButton 被 push 到 col 3）。
-	m_pThinkToggleBtn = new QPushButton(QString::fromUtf8(u8"AI \u601D\u8003"), ui.left_widget);
+	m_pThinkToggleBtn = new QPushButton(QString::fromUtf8("AI \u601D\u8003"), ui.left_widget);
 	m_pThinkToggleBtn->setObjectName("thinkToggleBtn");
 	m_pThinkToggleBtn->setCheckable(true);
 	m_pThinkToggleBtn->setMinimumHeight(68);
@@ -444,6 +444,7 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 
 	connect(ui.startButton, SIGNAL(clicked()), this, SLOT(slotStartBtnClicked()));
 	connect(ui.historyButton, SIGNAL(clicked()), this, SLOT(slotHistoryBtnClicked()));
+	connect(ui.undoButton, SIGNAL(clicked()), this, SLOT(slotUndoBtnClicked()));
 	connect(ui.starterComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotStarterChanged(int)));
 	connect(ui.difficultyComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotDifficultyChanged(int)));
 	connect(ui.difficultyComboBox, SIGNAL(currentTextChanged(QString)), this, SLOT(slotDifficultyTextChanged(QString)));
@@ -514,7 +515,7 @@ void Backgammon::slotStartBtnClicked()
 {
 	if (ui.startButton->isChecked())
 	{
-		ui.startButton->setText(QString::fromUtf8(u8"\u6E05\u9664"));
+		ui.startButton->setText(QString::fromUtf8("\u6E05\u9664"));
 		ui.starterComboBox->setEnabled(false);
 		ui.difficultyComboBox->setEnabled(false);
 		m_bStarted = true;
@@ -532,8 +533,8 @@ void Backgammon::slotStartBtnClicked()
 
 	QMessageBox::StandardButton btn = QMessageBox::warning(
 		this,
-		QString::fromUtf8(u8"\u8B66\u544A"),
-		QString::fromUtf8(u8"\u786E\u5B9A\u6E05\u9664\u68CB\u76D8\uFF1F"),
+		QString::fromUtf8("\u8B66\u544A"),
+		QString::fromUtf8("\u786E\u5B9A\u6E05\u9664\u68CB\u76D8\uFF1F"),
 		QMessageBox::Yes | QMessageBox::No);
 	if (btn == QMessageBox::Yes)
 	{
@@ -614,6 +615,69 @@ void Backgammon::slotHistoryBtnClicked()
 		});
 	dialog.exec();
 }
+void Backgammon::slotUndoBtnClicked()
+{
+	// 检查是否有棋可悔
+	if (m_currentGameMoves.isEmpty())
+	{
+		QMessageBox::information(this,
+			QString::fromUtf8("提示"),
+			QString::fromUtf8("当前没有可悔的棋步！"));
+		return;
+	}
+
+	// 每次悔棋撤销最后的两步：玩家的一步 + AI的一步（如果有）
+	int removeCount = 0;
+
+	while (removeCount < 2 && !m_currentGameMoves.isEmpty())
+	{
+		MoveRecord lastMove = m_currentGameMoves.back();
+		m_currentGameMoves.pop_back();
+
+		m_arrBoard[lastMove.row][lastMove.col] = NONE;
+
+		QList<QGraphicsItem*> items = m_pGraphicsScene->items();
+		for (QGraphicsItem* item : items)
+		{
+			if (item->type() == QGraphicsEllipseItem::Type)
+			{
+				QGraphicsEllipseItem* ellipseItem = static_cast<QGraphicsEllipseItem*>(item);
+				QRectF rect = ellipseItem->rect();
+				qreal centerX = rect.x() + rect.width() / 2.0;
+				qreal centerY = rect.y() + rect.height() / 2.0;
+				int boardRow = SceneToBoard(centerX);
+				int boardCol = SceneToBoard(centerY);
+
+				if (boardRow == lastMove.row && boardCol == lastMove.col)
+				{
+					if (ellipseItem == m_pLastAiPiece)
+					{
+						m_pLastAiPiece = nullptr;
+					}
+					m_pGraphicsScene->removeItem(item);
+					delete item;
+					break;
+				}
+			}
+		}
+
+		removeCount++;
+	}
+
+	m_nMoveCount = m_currentGameMoves.size();
+
+	if (m_playerRateHistory.isEmpty())
+	{
+		m_nPlayerWinRate = 50.0;
+		m_nAiWinRate = 50.0;
+	}
+	else
+	{
+		m_nPlayerWinRate = m_playerRateHistory.back();
+		m_nAiWinRate = 100.0 - m_nPlayerWinRate;
+}
+
+}
 
 bool Backgammon::IsBoardClean()
 {
@@ -647,13 +711,13 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 
 	if (row >= kBoardSize || row < 0 || col >= kBoardSize || col < 0)
 	{
-		QMessageBox::warning(this, QString::fromUtf8(u8"\u8B66\u544A"), QString::fromUtf8(u8"\u65E0\u6CD5\u843D\u5B50\uFF01"));
+		QMessageBox::warning(this, QString::fromUtf8("\u8B66\u544A"), QString::fromUtf8("\u65E0\u6CD5\u843D\u5B50\uFF01"));
 		return;
 	}
 
 	if (m_arrBoard[row][col] != NONE)
 	{
-		QMessageBox::warning(this, QString::fromUtf8(u8"\u8B66\u544A"), QString::fromUtf8(u8"\u65E0\u6CD5\u843D\u5B50\uFF01"));
+		QMessageBox::warning(this, QString::fromUtf8("\u8B66\u544A"), QString::fromUtf8("\u65E0\u6CD5\u843D\u5B50\uFF01"));
 		return;
 	}
 
@@ -761,22 +825,22 @@ void Backgammon::ResetWinRateEstimate()
 void Backgammon::UpdateStatsPanel()
 {
 	ui.currentUserLabel->setText(
-		QString::fromUtf8(u8"%1\n\u9ED8\u8BA4\u5F00\u5C40\uFF1A%2")
+		QString::fromUtf8("%1\n\u9ED8\u8BA4\u5F00\u5C40\uFF1A%2")
 			.arg(m_sCurrentUser)
 			.arg(StarterText(m_bPlayerStarts)));
-	ui.historyGamesLabel->setText(QString::fromUtf8(u8"\u7D2F\u8BA1\u5C40\u6570 %1").arg(m_nFinishedGames));
+	ui.historyGamesLabel->setText(QString::fromUtf8("\u7D2F\u8BA1\u5C40\u6570 %1").arg(m_nFinishedGames));
 	ui.historyPlayerRateLabel->setText(
-		QString::fromUtf8(u8"\u6211 %1 \u80DC | \u80DC\u7387 %2%")
+		QString::fromUtf8("\u6211 %1 \u80DC | \u80DC\u7387 %2%")
 			.arg(m_nPlayerWins)
 			.arg(m_nFinishedGames == 0 ? 0 : qRound(m_nPlayerWins * 100.0 / m_nFinishedGames)));
 	ui.historyAiRateLabel->setText(
-		QString::fromUtf8(u8"AI %1 \u80DC | \u80DC\u7387 %2%")
+		QString::fromUtf8("AI %1 \u80DC | \u80DC\u7387 %2%")
 			.arg(m_nAiWins)
 			.arg(m_nFinishedGames == 0 ? 0 : qRound(m_nAiWins * 100.0 / m_nFinishedGames)));
-	ui.gamesLabel->setText(QString::fromUtf8(u8"\u5F53\u524D\u624B\u6570 %1").arg(m_nMoveCount));
-	ui.playerRateLabel->setText(QString::fromUtf8(u8"\u6211\u7684\u9884\u4F30\u80DC\u7387 %1%").arg(qRound(m_nPlayerWinRate)));
-	ui.aiRateLabel->setText(QString::fromUtf8(u8"AI \u9884\u4F30\u80DC\u7387 %1%").arg(qRound(m_nAiWinRate)));
-	ui.historyButton->setText(QString::fromUtf8(u8"\u5386\u53F2\u5BF9\u5C40 (%1)").arg(m_playerRecord.games.size()));
+	ui.gamesLabel->setText(QString::fromUtf8("\u5F53\u524D\u624B\u6570 %1").arg(m_nMoveCount));
+	ui.playerRateLabel->setText(QString::fromUtf8("\u6211\u7684\u9884\u4F30\u80DC\u7387 %1%").arg(qRound(m_nPlayerWinRate)));
+	ui.aiRateLabel->setText(QString::fromUtf8("AI \u9884\u4F30\u80DC\u7387 %1%").arg(qRound(m_nAiWinRate)));
+	ui.historyButton->setText(QString::fromUtf8("\u5386\u53F2\u5BF9\u5C40 (%1)").arg(m_playerRecord.games.size()));
 
 	if (m_pWinRateChart)
 		m_pWinRateChart->SetSeries(m_playerRateHistory, m_aiRateHistory);
@@ -930,7 +994,7 @@ void Backgammon::PlaceAiOpeningMove()
 void Backgammon::FinishRoundCleanup()
 {
 	m_bStarted = false;
-	ui.startButton->setText(QString::fromUtf8(u8"\u5F00\u59CB"));
+	ui.startButton->setText(QString::fromUtf8("\u5F00\u59CB"));
 	ui.startButton->setChecked(false);
 	ui.starterComboBox->setEnabled(true);
 	ui.difficultyComboBox->setEnabled(true);

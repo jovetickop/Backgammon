@@ -84,6 +84,19 @@
         </widget>
        </item>
        <item row="0" column="2">
+        <widget class="QPushButton" name="undoButton">
+         <property name="text">
+          <string>悔棋</string>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>68</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
         <widget class="QPushButton" name="aiInfoButton">
          <property name="text">
           <string>?</string>
