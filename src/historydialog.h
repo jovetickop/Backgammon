@@ -8,6 +8,9 @@
 
 class QListWidget;
 class QPushButton;
+class QLineEdit;
+class QComboBox;
+class QDateEdit;
 
 // 历史对局对话框：展示玩家历史对局列表，支持多选删除和棋谱回放。
 // 删除操作通过 deletedIndices 信号传出，由调用方（Backgammon）实际执行数据删除。
@@ -38,11 +41,23 @@ private slots:
 	void onReplayClicked();
 	// 处理列表选择变化：更新按钮的可用状态。
 	void onSelectionChanged();
+	// 筛选条件变化时重新过滤列表。
+	void onFilterChanged();
 
 private:
+	// 根据当前筛选条件重新填充列表。
+	void applyFilter();
+
 	QListWidget *m_pHistoryList;
 	QPushButton *m_pDeleteButton;
 	QPushButton *m_pReplayButton;
+	// 筛选控件
+	QLineEdit  *m_pSearchEdit;   // 关键词搜索框
+	QComboBox  *m_pResultFilter; // 胜负筛选（全部/胜利/失利）
+	QDateEdit  *m_pDateFrom;     // 日期范围起始
+	QDateEdit  *m_pDateTo;       // 日期范围结束
+
+	const PlayerRecord &m_record; // 完整玩家记录（用于重建筛选后列表）
 	QVector<int> m_gameIndices; // 列表每一项对应的原始 games 数组索引（逆序排列）
 };
 

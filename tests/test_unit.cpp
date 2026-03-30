@@ -1167,6 +1167,103 @@ TEST(AIEngineIDDFSTest, SetDifficultyProfile_Hard_NoError)
     EXPECT_TRUE(pos.isValid());
 }
 
+// ==================== SqliteStore 测试（T023）====================
+
+#include "sqlitestore.h"
+#include <QStandardPaths>
+#include <QFile>
+
+class SqliteStoreTest : public ::testing::Test
+{
+protected:
+    SqliteStore store;
+    void SetUp() override {
+        // 使用临时路径，每次测试前清除数据库
+        QFile::remove(SqliteStore::DbPath());
+        ASSERT_TRUE(store.Open());
+    }
+    void TearDown() override {
+        store.Close();
+        QFile::remove(SqliteStore::DbPath());
+    }
+};
+
+TEST_F(SqliteStoreTest, Open_CreatesDatabase)
+{
+    EXPECT_TRUE(store.IsOpen());
+}
+
+TEST_F(SqliteStoreTest, SaveAndRead_PlayerRecord)
+{
+    PlayerRecord rec;
+    rec.displayName = "TestUser";
+    rec.preferredStarter = "player";
+    GameRecord game;
+    game.finishedAt = "2026-01-01";
+    game.playerWon = true;
+    game.playerStarted = true;
+    game.moveCount = 5;
+    rec.games.push_back(game);
+
+    EXPECT_TRUE(store.SaveRecord(rec));
+
+    PlayerRecord loaded = store.RecordForUser("TestUser");
+    EXPECT_EQ(loaded.displayName, QStringLiteral("TestUser"));
+    EXPECT_EQ(loaded.games.size(), 1);
+    EXPECT_TRUE(loaded.games[0].playerWon);
+    EXPECT_EQ(loaded.games[0].finishedAt, QStringLiteral("2026-01-01"));
+}
+
+TEST_F(SqliteStoreTest, LastUser_SetAndGet)
+{
+    store.SetLastUser("Alice");
+    EXPECT_EQ(store.LastUser(), QStringLiteral("Alice"));
+}
+
+TEST_F(SqliteStoreTest, TouchRecentUser_MaintainsOrder)
+{
+    store.TouchRecentUser("Alice");
+    store.TouchRecentUser("Bob");
+    store.TouchRecentUser("Alice"); // Alice 移到最前
+    QStringList recent = store.RecentUsers();
+    ASSERT_FALSE(recent.isEmpty());
+    EXPECT_EQ(recent.first(), QStringLiteral("Alice"));
+}
+
+TEST_F(SqliteStoreTest, MigrateFromJson_NonExistent_Succeeds)
+{
+    // 不存在的 JSON 文件，迁移应成功（标记为已迁移）
+    bool ok = store.MigrateFromJson("/non/existent/players.json");
+    EXPECT_TRUE(ok);
+    // 再次迁移应幂等
+    ok = store.MigrateFromJson("/non/existent/players.json");
+    EXPECT_TRUE(ok);
+}
+
+TEST_F(SqliteStoreTest, SaveRecord_WithMoves)
+{
+    PlayerRecord rec;
+    rec.displayName = "MoveUser";
+    GameRecord game;
+    game.finishedAt = "2026-03-30";
+    game.playerWon = false;
+    game.moveCount = 3;
+    MoveRecord mv1{7, 7, BLACK};
+    MoveRecord mv2{8, 8, WHITE};
+    MoveRecord mv3{9, 9, BLACK};
+    game.moves.push_back(mv1);
+    game.moves.push_back(mv2);
+    game.moves.push_back(mv3);
+    rec.games.push_back(game);
+
+    ASSERT_TRUE(store.SaveRecord(rec));
+    PlayerRecord loaded = store.RecordForUser("MoveUser");
+    ASSERT_EQ(loaded.games.size(), 1);
+    ASSERT_EQ(loaded.games[0].moves.size(), 3);
+    EXPECT_EQ(loaded.games[0].moves[0].row, 7);
+    EXPECT_EQ(loaded.games[0].moves[1].col, 8);
+}
+
 // ==================== 主函数（提供 QCoreApplication）====================
 
 int main(int argc, char **argv)

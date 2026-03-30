@@ -31,6 +31,7 @@
 #include <cmath>
 #include <tuple>
 
+#include "achievementdialog.h"
 #include "AiWorker.h"
 #include "historydialog.h"
 #include "replaydialog.h"
@@ -280,6 +281,9 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_bAiThinking(false)
 	, m_pSoundManager(nullptr)
 	, m_pSoundToggleBtn(nullptr)
+	, m_pAchievementManager(nullptr)
+	, m_nConsecutiveWins(0)
+	, m_bOpponentHadOpenFour(false)
 {
 	ui.setupUi(this);
 
@@ -476,6 +480,18 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	if (leftLayout)
 		leftLayout->addWidget(m_pSoundToggleBtn, 0, 6);
 	connect(m_pSoundToggleBtn, &QPushButton::toggled, this, &Backgammon::slotSoundToggleClicked);
+
+	// 创建成就管理器
+	m_pAchievementManager = new AchievementManager(this);
+	connect(m_pAchievementManager, &AchievementManager::achievementsUnlocked,
+		this, &Backgammon::slotAchievementsUnlocked);
+
+	// 创建「成就」按钮并插入到左侧面板按钮行 col7
+	QPushButton *achieveBtn = new QPushButton(QString::fromUtf8("\u6210\u5C31"), ui.left_widget);
+	achieveBtn->setMinimumHeight(68);
+	if (leftLayout)
+		leftLayout->addWidget(achieveBtn, 0, 7);
+	connect(achieveBtn, &QPushButton::clicked, this, &Backgammon::slotAchievementBtnClicked);
 
 	// 棋盘背景：浅木纹径向渐变，中心偏亮、边缘微暗，保持明亮清爽感。
 	QRadialGradient boardBg(kBoardCenter * kGridSize + 180, kBoardCenter * kGridSize - 120, 600);
@@ -941,10 +957,29 @@ void Backgammon::RecordGameResult(ePiece winner)
 		++m_nAiWins;
 
 	m_nFinishedGames = m_playerRecord.games.size();
+
+	// 更新连胜计数
+	const bool playerWon = (winner == BLACK);
+	if (playerWon)
+		++m_nConsecutiveWins;
+	else
+		m_nConsecutiveWins = 0;
+
 	PersistPlayerRecord();
 	UpdateStatsPanel();
 	// 胜负音效
 	if (m_pSoundManager) m_pSoundManager->playWin();
+
+	// 检查成就解锁条件
+	if (m_pAchievementManager) {
+		m_pAchievementManager->checkAndUnlock(
+			playerWon,
+			m_currentGameMoves.size(),
+			m_nFinishedGames,
+			m_nConsecutiveWins,
+			m_bOpponentHadOpenFour);
+	}
+	m_bOpponentHadOpenFour = false;
 }
 
 void Backgammon::PersistPlayerRecord()
@@ -1024,6 +1059,8 @@ void Backgammon::UpdateWinRateEstimate(ePiece nextPiece)
 	{
 		m_nAiWinRate = 100.0;
 		m_nPlayerWinRate = 0.0;
+		// AI 已形成必胜局面，标记对手曾有连四威胁（用于「铁壁防守」成就判断）
+		m_bOpponentHadOpenFour = true;
 	}
 	else
 	{
@@ -1478,6 +1515,26 @@ void Backgammon::slotSoundToggleClicked(bool checked)
 	// 将开关状态同步给音效管理器并持久化。
 	if (m_pSoundManager)
 		m_pSoundManager->setEnabled(checked);
+}
+
+void Backgammon::slotAchievementBtnClicked()
+{
+	if (!m_pAchievementManager)
+		return;
+	AchievementDialog dlg(m_pAchievementManager, this);
+	dlg.exec();
+}
+
+void Backgammon::slotAchievementsUnlocked(const QVector<Achievement> &newlyUnlocked)
+{
+	// 逐一弹出解锁通知
+	for (const Achievement &a : newlyUnlocked) {
+		QMessageBox::information(
+			this,
+			QString::fromUtf8("\u6210\u5C31\u89E3\u9501\uFF01"),
+			QString::fromUtf8("\U0001F3C6 \u6062\u5E7D\u5956\u7AE0\uFF1A%1\n%2")
+				.arg(a.name, a.description));
+	}
 }
 
 void Backgammon::slotExportSgfClicked()

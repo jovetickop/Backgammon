@@ -33,7 +33,10 @@ set(BACKGAMMON_SOURCES
     src/gamebridge.cpp
     src/AiWorker.cpp
     src/playerstatsstore.cpp
+    src/sqlitestore.cpp
     src/soundmanager.cpp
+    src/achievementmanager.cpp
+    src/achievementdialog.cpp
     src/sgf_serializer.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
@@ -112,6 +115,7 @@ set(UNIT_TEST_SOURCES
     tests/test_unit.cpp
     src/types.h
     src/playerstatsstore.cpp
+    src/sqlitestore.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
     src/domain/services/win_detector.cpp
@@ -133,6 +137,7 @@ target_link_libraries(TestUnit PRIVATE
     gtest
     Qt5::Core
     Qt5::Widgets
+    Qt5::Sql
 )
 
 # 注册测试

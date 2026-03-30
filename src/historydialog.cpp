@@ -1,9 +1,13 @@
 #include "historydialog.h"
 
+#include <QComboBox>
+#include <QDateEdit>
 #include <QDialogButtonBox>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
+#include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
@@ -46,6 +50,11 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	, m_pHistoryList(nullptr)
 	, m_pDeleteButton(nullptr)
 	, m_pReplayButton(nullptr)
+	, m_pSearchEdit(nullptr)
+	, m_pResultFilter(nullptr)
+	, m_pDateFrom(nullptr)
+	, m_pDateTo(nullptr)
+	, m_record(record)
 {
 	setModal(true);
 	setWindowFlag(Qt::WindowContextHelpButtonHint, false);
@@ -148,33 +157,44 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	subtitle->setWordWrap(true);
 	cardLayout->addWidget(subtitle);
 
+	// 筛选行：关键词搜索 + 胜负筛选 + 日期范围。
+	QHBoxLayout *filterLayout = new QHBoxLayout;
+	filterLayout->setSpacing(8);
+
+	m_pSearchEdit = new QLineEdit(card);
+	m_pSearchEdit->setPlaceholderText(QString::fromUtf8(u8"搜索（日期/手数等）"));
+	m_pSearchEdit->setMinimumWidth(180);
+	filterLayout->addWidget(m_pSearchEdit);
+
+	m_pResultFilter = new QComboBox(card);
+	m_pResultFilter->addItem(QString::fromUtf8(u8"全部"),   -1);
+	m_pResultFilter->addItem(QString::fromUtf8(u8"胜利"),    1);
+	m_pResultFilter->addItem(QString::fromUtf8(u8"失利"),    0);
+	filterLayout->addWidget(m_pResultFilter);
+
+	filterLayout->addWidget(new QLabel(QString::fromUtf8(u8"从"), card));
+	m_pDateFrom = new QDateEdit(card);
+	m_pDateFrom->setDisplayFormat("yyyy-MM-dd");
+	m_pDateFrom->setDate(QDate(2020, 1, 1));
+	m_pDateFrom->setCalendarPopup(true);
+	filterLayout->addWidget(m_pDateFrom);
+
+	filterLayout->addWidget(new QLabel(QString::fromUtf8(u8"至"), card));
+	m_pDateTo = new QDateEdit(card);
+	m_pDateTo->setDisplayFormat("yyyy-MM-dd");
+	m_pDateTo->setDate(QDate::currentDate());
+	m_pDateTo->setCalendarPopup(true);
+	filterLayout->addWidget(m_pDateTo);
+	filterLayout->addStretch();
+
+	cardLayout->addLayout(filterLayout);
+
 	// 对局列表：支持多选（ExtendedSelection = Ctrl+点击多选 / Shift+点击范围选）。
 	m_pHistoryList = new QListWidget(card);
 	m_pHistoryList->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-	// 逆序遍历：最新的对局显示在最前面，同时记录每项对应的原始索引。
-	if (record.games.isEmpty())
-	{
-		m_pHistoryList->addItem(QString::fromUtf8(u8"暂无历史对局记录"));
-		m_pHistoryList->setSelectionMode(QAbstractItemView::NoSelection);
-	}
-	else
-	{
-		for (int i = record.games.size() - 1; i >= 0; --i)
-		{
-			const GameRecord &game = record.games[i];
-			const QString itemText = QString::fromUtf8(
-				u8"第 %1 局 | %2\n结果：%3 | 先手：%4 | 总手数：%5\n落子预览：%6")
-				.arg(i + 1)
-				.arg(game.finishedAt.isEmpty() ? QString::fromUtf8(u8"时间未记录") : game.finishedAt)
-				.arg(ResultText(game.playerWon))
-				.arg(StarterText(game.playerStarted))
-				.arg(game.moveCount)
-				.arg(MovesPreview(game.moves));
-			m_pHistoryList->addItem(itemText);
-			m_gameIndices.push_back(i);
-		}
-	}
+	// 初始填充（无筛选条件）
+	applyFilter();
 	cardLayout->addWidget(m_pHistoryList, 1);
 
 	// 底部按钮栏：回放按钮 + 删除按钮 + 关闭按钮。
@@ -200,6 +220,69 @@ HistoryDialog::HistoryDialog(const QString &userName, const PlayerRecord &record
 	connect(m_pHistoryList, &QListWidget::itemSelectionChanged, this, &HistoryDialog::onSelectionChanged);
 	connect(m_pDeleteButton, &QPushButton::clicked, this, &HistoryDialog::onDeleteClicked);
 	connect(m_pReplayButton, &QPushButton::clicked, this, &HistoryDialog::onReplayClicked);
+	// 筛选条件变化时重新过滤
+	connect(m_pSearchEdit, &QLineEdit::textChanged, this, &HistoryDialog::onFilterChanged);
+	connect(m_pResultFilter, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &HistoryDialog::onFilterChanged);
+	connect(m_pDateFrom, &QDateEdit::dateChanged, this, &HistoryDialog::onFilterChanged);
+	connect(m_pDateTo, &QDateEdit::dateChanged, this, &HistoryDialog::onFilterChanged);
+}
+
+void HistoryDialog::onFilterChanged()
+{
+	applyFilter();
+}
+
+void HistoryDialog::applyFilter()
+{
+	m_pHistoryList->clear();
+	m_gameIndices.clear();
+
+	const QString keyword = m_pSearchEdit ? m_pSearchEdit->text().trimmed().toLower() : QString();
+	const int resultFilter = m_pResultFilter ? m_pResultFilter->currentData().toInt() : -1;
+	const QDate dateFrom = m_pDateFrom ? m_pDateFrom->date() : QDate(2020, 1, 1);
+	const QDate dateTo   = m_pDateTo   ? m_pDateTo->date()   : QDate::currentDate();
+
+	if (m_record.games.isEmpty()) {
+		m_pHistoryList->addItem(QString::fromUtf8(u8"暂无历史对局记录"));
+		m_pHistoryList->setSelectionMode(QAbstractItemView::NoSelection);
+		return;
+	}
+
+	m_pHistoryList->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+	for (int i = m_record.games.size() - 1; i >= 0; --i) {
+		const GameRecord &game = m_record.games[i];
+
+		// 胜负筛选
+		if (resultFilter == 1 && !game.playerWon) continue;
+		if (resultFilter == 0 &&  game.playerWon) continue;
+
+		// 日期范围筛选
+		if (!game.finishedAt.isEmpty()) {
+			const QDate gameDate = QDate::fromString(game.finishedAt.left(10), "yyyy-MM-dd");
+			if (gameDate.isValid() && (gameDate < dateFrom || gameDate > dateTo)) continue;
+		}
+
+		const QString itemText = QString::fromUtf8(
+			u8"第 %1 局 | %2\n结果：%3 | 先手：%4 | 总手数：%5\n落子预览：%6")
+			.arg(i + 1)
+			.arg(game.finishedAt.isEmpty() ? QString::fromUtf8(u8"时间未记录") : game.finishedAt)
+			.arg(ResultText(game.playerWon))
+			.arg(StarterText(game.playerStarted))
+			.arg(game.moveCount)
+			.arg(MovesPreview(game.moves));
+
+		// 关键词搜索（在显示文本中查找）
+		if (!keyword.isEmpty() && !itemText.toLower().contains(keyword)) continue;
+
+		m_pHistoryList->addItem(itemText);
+		m_gameIndices.push_back(i);
+	}
+
+	if (m_pHistoryList->count() == 0) {
+		m_pHistoryList->addItem(QString::fromUtf8(u8"无匹配的对局记录"));
+		m_pHistoryList->setSelectionMode(QAbstractItemView::NoSelection);
+	}
 }
 
 void HistoryDialog::onSelectionChanged()
@@ -254,5 +337,52 @@ void HistoryDialog::onDeleteClicked()
 		emit deletedIndices(indices);
 		// 关闭对话框。
 		accept();
+	}
+}
+
+void HistoryDialog::onFilterChanged()
+{
+	applyFilter();
+}
+
+void HistoryDialog::applyFilter()
+{
+	if (!m_pHistoryList) return;
+	m_pHistoryList->clear();
+	m_gameIndices.clear();
+
+	const QString keyword = m_pSearchEdit ? m_pSearchEdit->text().trimmed() : QString();
+	const int resultFilter = m_pResultFilter ? m_pResultFilter->currentIndex() : 0; // 0=全部,1=胜,2=负
+	const QDate dateFrom = m_pDateFrom ? m_pDateFrom->date() : QDate(2000, 1, 1);
+	const QDate dateTo   = m_pDateTo   ? m_pDateTo->date()   : QDate::currentDate();
+
+	// 逆序遍历（最新对局在前）
+	for (int i = m_record.games.size() - 1; i >= 0; --i)
+	{
+		const GameRecord &game = m_record.games[i];
+
+		// 胜负筛选
+		if (resultFilter == 1 && !game.playerWon) continue;
+		if (resultFilter == 2 &&  game.playerWon) continue;
+
+		// 日期筛选
+		const QDate gameDate = QDate::fromString(game.finishedAt.left(10), "yyyy-MM-dd");
+		if (gameDate.isValid()) {
+			if (gameDate < dateFrom || gameDate > dateTo) continue;
+		}
+
+		// 构建列表项文本
+		const QString resultText = game.playerWon
+			? QString::fromUtf8(u8"胜利") : QString::fromUtf8(u8"失利");
+		const QString starterText = game.playerStarted
+			? QString::fromUtf8(u8"我先手") : QString::fromUtf8(u8"AI先手");
+		const QString itemText = QString::fromUtf8(u8"%1  %2  %3  共%4手")
+			.arg(game.finishedAt).arg(resultText).arg(starterText).arg(game.moveCount);
+
+		// 关键词筛选
+		if (!keyword.isEmpty() && !itemText.contains(keyword, Qt::CaseInsensitive)) continue;
+
+		m_pHistoryList->addItem(itemText);
+		m_gameIndices.push_back(i);
 	}
 }

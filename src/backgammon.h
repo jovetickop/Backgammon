@@ -6,6 +6,7 @@
 #include <QVector>
 #include <QSettings>
 
+#include "achievementmanager.h"
 #include "playerstatsstore.h"
 #include "ui_backgammon.h"
 #include "types.h"
@@ -61,6 +62,10 @@ public slots:
 	void slotAiMoveReady(int row, int col);
 	// 切换音效开关
 	void slotSoundToggleClicked(bool checked);
+	// 打开成就列表对话框
+	void slotAchievementBtnClicked();
+	// 处理新成就解锁通知
+	void slotAchievementsUnlocked(const QVector<Achievement> &newlyUnlocked);
 	// 导出当前对局为 SGF 文件
 	void slotExportSgfClicked();
 	// 从 SGF 文件导入并回放棋谱
@@ -144,6 +149,13 @@ private:
 	// 音效管理器及音效开关按钮
 	SoundManager *m_pSoundManager;
 	QPushButton *m_pSoundToggleBtn;
+
+	// 成就管理器
+	AchievementManager *m_pAchievementManager;
+	// 当前连胜数
+	int m_nConsecutiveWins;
+	// 本局对手是否出现过连四（被玩家防守）
+	bool m_bOpponentHadOpenFour;
 };
 
 #endif // BACKGAMMON_H
