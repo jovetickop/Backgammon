@@ -17,6 +17,7 @@
 #include "domain/services/board_evaluator.h"
 #include "domain/services/ai_engine.h"
 
+class QKeyEvent;
 class QMouseEvent;
 class QResizeEvent;
 class QShowEvent;
@@ -42,6 +43,8 @@ public:
 	void DrawBoard();
 	bool IsBoardClean();
 	void mousePressEvent(QMouseEvent * event);
+	// 键盘事件：方向键移动光标、Enter 落子、Ctrl+Z 悔棋
+	void keyPressEvent(QKeyEvent *event) override;
 	void showEvent(QShowEvent *event);
 	void resizeEvent(QResizeEvent *event);
 	void CleanBoard();
@@ -164,6 +167,12 @@ private:
 	int m_nConsecutiveWins;
 	// 本局对手是否出现过连四（被玩家防守）
 	bool m_bOpponentHadOpenFour;
+
+	// 键盘光标位置（行列，初始在棋盘中心）
+	int m_nCursorRow;
+	int m_nCursorCol;
+	// 当前键盘光标图形项（nullptr 表示未显示）
+	QGraphicsRectItem *m_pCursorItem;
 
 	// 局域网对战：服务端/客户端（二者互斥，当前角色决定哪个非空）
 	GameServer *m_pGameServer;

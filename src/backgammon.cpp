@@ -15,6 +15,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QMessageBox>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QPen>
 #include <QPushButton>
@@ -285,6 +286,9 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_pAchievementManager(nullptr)
 	, m_nConsecutiveWins(0)
 	, m_bOpponentHadOpenFour(false)
+	, m_nCursorRow(7)
+	, m_nCursorCol(7)
+	, m_pCursorItem(nullptr)
 	, m_pGameServer(nullptr)
 	, m_pGameClient(nullptr)
 	, m_bNetworkMode(false)
@@ -840,6 +844,56 @@ void Backgammon::resizeEvent(QResizeEvent *event)
 {
 	QMainWindow::resizeEvent(event);
 	UpdateBoardView();
+}
+
+void Backgammon::keyPressEvent(QKeyEvent *event)
+{
+	const int key = event->key();
+	// Ctrl+Z 悔棋
+	if (key == Qt::Key_Z && (event->modifiers() & Qt::ControlModifier)) {
+		slotUndoBtnClicked();
+		return;
+	}
+	if (!m_bStarted) {
+		QMainWindow::keyPressEvent(event);
+		return;
+	}
+	// 方向键移动光标
+	const int prev_row = m_nCursorRow;
+	const int prev_col = m_nCursorCol;
+	if (key == Qt::Key_Up    && m_nCursorRow > 0)          --m_nCursorRow;
+	else if (key == Qt::Key_Down  && m_nCursorRow < 14)    ++m_nCursorRow;
+	else if (key == Qt::Key_Left  && m_nCursorCol > 0)     --m_nCursorCol;
+	else if (key == Qt::Key_Right && m_nCursorCol < 14)    ++m_nCursorCol;
+	else if (key == Qt::Key_Return || key == Qt::Key_Enter) {
+		// Enter 落子：模拟鼠标点击光标位置
+		if (m_arrBoard[m_nCursorRow][m_nCursorCol] == NONE) {
+			const int sx = BoardToScene(m_nCursorCol);
+			const int sy = BoardToScene(m_nCursorRow);
+			const QPointF viewPt = ui.graphicsView->mapFromScene(QPointF(sx, sy));
+			const QPoint globalPt = ui.graphicsView->mapToGlobal(viewPt.toPoint());
+			const QPoint localPt = mapFromGlobal(globalPt);
+			QMouseEvent fakeEvt(QEvent::MouseButtonPress, localPt, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+			mousePressEvent(&fakeEvt);
+		}
+		return;
+	} else {
+		QMainWindow::keyPressEvent(event);
+		return;
+	}
+	// 重绘光标（先删旧光标项，再绘新位置）
+	if (m_pCursorItem) {
+		m_pGraphicsScene->removeItem(m_pCursorItem);
+		delete m_pCursorItem;
+		m_pCursorItem = nullptr;
+	}
+	Q_UNUSED(prev_row); Q_UNUSED(prev_col);
+	const int cx = BoardToScene(m_nCursorCol);
+	const int cy = BoardToScene(m_nCursorRow);
+	const int half = kPieceRadius + 2;
+	QPen cursorPen(QColor(255, 80, 80), 2);
+	m_pCursorItem = m_pGraphicsScene->addRect(
+		cx - half, cy - half, half * 2, half * 2, cursorPen, Qt::NoBrush);
 }
 
 void Backgammon::mousePressEvent(QMouseEvent * event)
