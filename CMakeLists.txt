@@ -38,6 +38,9 @@ set(BACKGAMMON_SOURCES
     src/achievementmanager.cpp
     src/achievementdialog.cpp
     src/sgf_serializer.cpp
+    src/gameserver.cpp
+    src/gameclient.cpp
+    src/networkdialog.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
     src/domain/services/win_detector.cpp

@@ -12,6 +12,8 @@
 #include "types.h"
 #include "domain/services/win_detector.h"
 #include "sgf_serializer.h"
+#include "gameserver.h"
+#include "gameclient.h"
 #include "domain/services/board_evaluator.h"
 #include "domain/services/ai_engine.h"
 
@@ -70,6 +72,12 @@ public slots:
 	void slotExportSgfClicked();
 	// 从 SGF 文件导入并回放棋谱
 	void slotImportSgfClicked();
+	// 打开局域网对战对话框
+	void slotNetworkBtnClicked();
+	// 收到对方落子（网络模式）
+	void slotNetworkMoveReceived(int row, int col);
+	// 网络断线处理
+	void slotNetworkDisconnected();
 
 private:
 	void RecordGameResult(ePiece winner);
@@ -156,6 +164,14 @@ private:
 	int m_nConsecutiveWins;
 	// 本局对手是否出现过连四（被玩家防守）
 	bool m_bOpponentHadOpenFour;
+
+	// 局域网对战：服务端/客户端（二者互斥，当前角色决定哪个非空）
+	GameServer *m_pGameServer;
+	GameClient *m_pGameClient;
+	// 是否处于网络对战模式
+	bool m_bNetworkMode;
+	// 网络模式下本方棋子颜色（主机=黑=先手，客户端=白=后手）
+	ePiece m_eNetworkPiece;
 };
 
 #endif // BACKGAMMON_H
