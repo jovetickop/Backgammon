@@ -1,4 +1,9 @@
 ﻿<RCC>
     <qresource prefix="Backgammon">
     </qresource>
+    <qresource prefix="/qml">
+        <file alias="LoginDialog.qml">../resources/qml/LoginDialog.qml</file>
+        <file alias="ResultDialog.qml">../resources/qml/ResultDialog.qml</file>
+        <file alias="HistoryDialog.qml">../resources/qml/HistoryDialog.qml</file>
+    </qresource>
 </RCC>
