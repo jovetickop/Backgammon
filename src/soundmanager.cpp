@@ -7,6 +7,10 @@
 #include <QSettings>
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 SoundManager::SoundManager(QObject *parent)
     : QObject(parent)
 {

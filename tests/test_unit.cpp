@@ -1071,6 +1071,102 @@ TEST(AIEngineIDDFSTest, ClearTT_ResetsHitCount)
     EXPECT_EQ(engine.ttHitCount(), 0ULL);
 }
 
+// ==================== DifficultyConfig 测试（T016）====================
+
+#include "domain/services/difficulty_config.h"
+
+TEST(DifficultyConfigTest, DefaultProfiles_Count)
+{
+    // 内置默认配置应有4个难度
+    game_core::DifficultyConfig cfg;
+    EXPECT_EQ(cfg.profileCount(), 4);
+}
+
+TEST(DifficultyConfigTest, GetProfile_Easy)
+{
+    game_core::DifficultyConfig cfg;
+    const auto& p = cfg.getProfile(1);
+    EXPECT_EQ(p.id, 1);
+    EXPECT_GT(p.error_rate, 0.0);  // 简单难度有错误率
+    EXPECT_LE(p.search_depth, 3);  // 简单难度搜索深度较浅
+}
+
+TEST(DifficultyConfigTest, GetProfile_Hard)
+{
+    game_core::DifficultyConfig cfg;
+    const auto& p = cfg.getProfile(3);
+    EXPECT_EQ(p.id, 3);
+    EXPECT_DOUBLE_EQ(p.error_rate, 0.0); // 困难难度无失误
+    EXPECT_GE(p.search_depth, 4);        // 困难难度搜索较深
+}
+
+TEST(DifficultyConfigTest, GetProfile_Expert)
+{
+    game_core::DifficultyConfig cfg;
+    const auto& p = cfg.getProfile(4);
+    EXPECT_EQ(p.id, 4);
+    EXPECT_DOUBLE_EQ(p.error_rate, 0.0);
+    EXPECT_GE(p.search_depth, 6);
+}
+
+TEST(DifficultyConfigTest, GetProfile_InvalidId_ReturnDefault)
+{
+    game_core::DifficultyConfig cfg;
+    const auto& p = cfg.getProfile(999);
+    // 找不到时返回默认（普通难度 id=2）
+    EXPECT_EQ(p.id, 2);
+}
+
+TEST(DifficultyConfigTest, LoadFromFile_NonExistent_KeepsDefaults)
+{
+    game_core::DifficultyConfig cfg;
+    bool ok = cfg.loadFromFile("non_existent_file.json");
+    EXPECT_FALSE(ok);
+    // 默认配置仍然有效
+    EXPECT_EQ(cfg.profileCount(), 4);
+}
+
+TEST(DifficultyConfigTest, EasyHasHigherErrorRate_ThanHard)
+{
+    game_core::DifficultyConfig cfg;
+    const auto& easy = cfg.getProfile(1);
+    const auto& hard = cfg.getProfile(3);
+    EXPECT_GT(easy.error_rate, hard.error_rate);
+}
+
+TEST(AIEngineIDDFSTest, SetDifficultyProfile_Easy_HasErrorRate)
+{
+    // 简单难度：error_rate=0.3，AI 应当能在多次调用中返回非最优步
+    game_core::DifficultyConfig cfg;
+    const auto& easy = cfg.getProfile(1);
+    AIEngine engine;
+    engine.setDifficultyProfile(easy);
+    EXPECT_EQ(engine.searchDepth(), easy.search_depth);
+    EXPECT_EQ(engine.timeLimitMs(), easy.time_limit_ms);
+
+    // 调用 calculateBestMove，确保不崩溃且返回有效位置
+    GameBoard board;
+    board.placePiece(Position(7, 7), Piece::Black);
+    board.placePiece(Position(7, 8), Piece::White);
+    board.placePiece(Position(8, 7), Piece::Black);
+    Position pos = engine.calculateBestMove(board, Piece::White);
+    EXPECT_TRUE(pos.isValid());
+}
+
+TEST(AIEngineIDDFSTest, SetDifficultyProfile_Hard_NoError)
+{
+    game_core::DifficultyConfig cfg;
+    const auto& hard = cfg.getProfile(3);
+    AIEngine engine;
+    engine.setDifficultyProfile(hard);
+    // 困难难度：直接走最优步，返回有效位置
+    GameBoard board;
+    board.placePiece(Position(7, 7), Piece::Black);
+    board.placePiece(Position(7, 8), Piece::White);
+    Position pos = engine.calculateBestMove(board, Piece::White);
+    EXPECT_TRUE(pos.isValid());
+}
+
 // ==================== 主函数（提供 QCoreApplication）====================
 
 int main(int argc, char **argv)

@@ -794,6 +794,8 @@ void Backgammon::slotUndoBtnClicked()
 
 	// 无可悔棋步时禁用悔棋按钮。
 	ui.undoButton->setEnabled(!m_currentGameMoves.isEmpty());
+	// 悔棋音效
+	if (m_pSoundManager) m_pSoundManager->playUndo();
 }
 
 bool Backgammon::IsBoardClean()
@@ -935,6 +937,8 @@ void Backgammon::RecordGameResult(ePiece winner)
 	m_nFinishedGames = m_playerRecord.games.size();
 	PersistPlayerRecord();
 	UpdateStatsPanel();
+	// 胜负音效
+	if (m_pSoundManager) m_pSoundManager->playWin();
 }
 
 void Backgammon::PersistPlayerRecord()
@@ -1105,6 +1109,8 @@ void Backgammon::PlaceAiMove(int row, int col)
 		QPen(QColor(140, 140, 140, 120), 1), QBrush(whiteGrad));
 	SetLastAiPiece(aiPiece);
 	AppendMove(row, col, WHITE);
+	// 落子音效
+	if (m_pSoundManager) m_pSoundManager->playPlace();
 }
 
 void Backgammon::PlacePlayerMove(int row, int col)
@@ -1128,6 +1134,8 @@ void Backgammon::PlacePlayerMove(int row, int col)
 		x, y, kPieceSize, kPieceSize,
 		QPen(QColor(5, 5, 5, 80), 1), QBrush(blackGrad));
 	AppendMove(row, col, BLACK);
+	// 落子音效
+	if (m_pSoundManager) m_pSoundManager->playPlace();
 }
 
 void Backgammon::PlaceAiOpeningMove()
@@ -1368,13 +1376,102 @@ void Backgammon::slotHintBtnClicked(bool checked)
 
 void Backgammon::ComputeAndShowHint()
 {
-	// 提示功能暂未实现，预留接口。
 	ClearHintOverlay();
+
+	// 提示从玩家视角计算：玩家执 BLACK，AI 执 WHITE（无论先后手）。
+	// 若 PvP 模式则根据当前手数判断轮到哪方。
+	const ePiece playerPiece = m_bPvPMode
+		? ((m_nMoveCount % 2 == 0) ? BLACK : WHITE)
+		: BLACK;
+	const ePiece opponentPiece = (playerPiece == BLACK) ? WHITE : BLACK;
+
+	// 收集八邻域内有棋子的空位作为候选点。
+	QVector<std::tuple<int, int, int>> candidates;
+	const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+	const game_core::Piece gplayer = (playerPiece == BLACK) ? game_core::Piece::Black : game_core::Piece::White;
+	const game_core::Piece gopp = (opponentPiece == BLACK) ? game_core::Piece::Black : game_core::Piece::White;
+
+	for (int i = 0; i < kBoardSize; ++i)
+	{
+		for (int j = 0; j < kBoardSize; ++j)
+		{
+			if (m_arrBoard[i][j] != NONE)
+				continue;
+
+			// 候选条件：八邻域有棋子，或棋盘为空时取中心。
+			bool hasNeighbor = false;
+			for (int di = -1; di <= 1 && !hasNeighbor; ++di)
+				for (int dj = -1; dj <= 1 && !hasNeighbor; ++dj)
+				{
+					if (di == 0 && dj == 0) continue;
+					int ni = i + di, nj = j + dj;
+					if (ni >= 0 && ni < kBoardSize && nj >= 0 && nj < kBoardSize
+						&& m_arrBoard[ni][nj] != NONE)
+						hasNeighbor = true;
+				}
+			if (!hasNeighbor && !(i == kBoardCenter && j == kBoardCenter && m_nMoveCount == 0))
+				continue;
+
+			// 综合分 = 进攻价值 + 防守价值 * 2
+			const int attack  = m_boardEvaluator.evaluateMove(gboard, game_core::Position(i, j), gplayer);
+			const int defense = m_boardEvaluator.evaluateMove(gboard, game_core::Position(i, j), gopp);
+			candidates.push_back({i, j, attack + defense * 2});
+		}
+	}
+
+	if (candidates.isEmpty())
+		return;
+
+	// 取综合分最高的前 3 个。
+	std::sort(candidates.begin(), candidates.end(),
+		[](const std::tuple<int, int, int> &a, const std::tuple<int, int, int> &b)
+		{ return std::get<2>(a) > std::get<2>(b); });
+
+	const int topN = qMin(3, static_cast<int>(candidates.size()));
+
+	// 绘制绿色圆形标记，排名越高圆形越不透明。
+	for (int k = 0; k < topN; ++k)
+	{
+		const int row = std::get<0>(candidates[k]);
+		const int col = std::get<1>(candidates[k]);
+		const int cx = BoardToScene(col);
+		const int cy = BoardToScene(row);
+
+		// 透明度：第1名最深，第3名较浅。
+		const int alpha = 200 - k * 50;
+		const int markerRadius = 18 - k * 2;
+
+		// 绿色填充圆，带白色边框。
+		QGraphicsEllipseItem *marker = m_pGraphicsScene->addEllipse(
+			cx - markerRadius, cy - markerRadius,
+			markerRadius * 2, markerRadius * 2,
+			QPen(QColor(255, 255, 255, alpha), 2),
+			QBrush(QColor(50, 200, 80, alpha)));
+		m_hintItems.push_back(marker);
+
+		// 在圆内显示排名数字（1/2/3）。
+		QGraphicsSimpleTextItem *rankText = m_pGraphicsScene->addSimpleText(QString::number(k + 1));
+		QFont f;
+		f.setPixelSize(13);
+		f.setBold(true);
+		rankText->setFont(f);
+		rankText->setBrush(Qt::white);
+		QFontMetrics fm(f);
+		const qreal tw = fm.horizontalAdvance(QString::number(k + 1));
+		const qreal th = fm.height();
+		QTransform t;
+		t.translate(cx - tw / 2.0, cy - th / 2.0);
+		rankText->setTransform(t);
+		m_hintItems.push_back(rankText);
+	}
+	m_bHintVisible = true;
 }
 
-void Backgammon::slotSoundToggleClicked(bool /*checked*/)
+void Backgammon::slotSoundToggleClicked(bool checked)
 {
-	// 音效开关功能暂未实现，预留接口。
+	// 将开关状态同步给音效管理器并持久化。
+	if (m_pSoundManager)
+		m_pSoundManager->setEnabled(checked);
 }
 
 void Backgammon::slotExportSgfClicked()

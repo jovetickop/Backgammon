@@ -16,7 +16,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
 # 强制使用 Qt5 Widgets
-find_package(Qt5 REQUIRED COMPONENTS Widgets Test)
+find_package(Qt5 REQUIRED COMPONENTS Widgets Multimedia Test)
 
 # 启用测试
 enable_testing()
@@ -33,6 +33,7 @@ set(BACKGAMMON_SOURCES
     src/gamebridge.cpp
     src/AiWorker.cpp
     src/playerstatsstore.cpp
+    src/soundmanager.cpp
     src/sgf_serializer.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
@@ -40,6 +41,7 @@ set(BACKGAMMON_SOURCES
     src/domain/services/board_evaluator.cpp
     src/domain/services/ai_engine.cpp
     src/domain/services/transposition_table.cpp
+    src/domain/services/difficulty_config.cpp
     # DDD 应用层
     src/application/game_service.cpp
 )
@@ -86,6 +88,7 @@ target_link_libraries(Backgammon PRIVATE
     Qt5::Widgets
     Qt5::Core
     Qt5::Gui
+    Qt5::Multimedia
 )
 
 # 简单的单元测试（使用GoogleTest）
@@ -113,6 +116,7 @@ set(UNIT_TEST_SOURCES
     src/domain/services/board_evaluator.cpp
     src/domain/services/ai_engine.cpp
     src/domain/services/transposition_table.cpp
+    src/domain/services/difficulty_config.cpp
     src/application/game_service.cpp
 )
 
