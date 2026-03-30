@@ -1,6 +1,7 @@
 #include "AiWorker.h"
 #include "domain/services/ai_engine.h"
 #include "domain/aggregates/game_board.h"
+#include <QCoreApplication>
 #include <cstring>
 
 AiWorker::AiWorker(QObject *parent)
@@ -43,6 +44,11 @@ void AiWorker::Run()
             }
 
     game_core::AIEngine engine;
+    // 加载开局库（从可执行文件同级目录的 resources 子目录查找）
+    {
+        QString bookPath = QCoreApplication::applicationDirPath() + "/resources/opening_book.json";
+        engine.loadOpeningBook(bookPath);
+    }
     if (m_use_profile) {
         // 使用难度配置（T016 人格化）
         engine.setDifficultyProfile(m_profile);

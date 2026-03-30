@@ -4,6 +4,7 @@
 #include "../values/piece.h"
 #include "board_evaluator.h"
 #include "difficulty_config.h"
+#include "opening_book.h"
 #include "transposition_table.h"
 #include "win_detector.h"
 #include <atomic>
@@ -48,6 +49,12 @@ public:
     // 获取置换表命中次数（用于调试/统计）
     uint64_t ttHitCount() const { return tt_.hitCount(); }
 
+    // 加载开局库文件。返回加载的条目数，-1 表示失败。
+    int loadOpeningBook(const QString &filePath) { return opening_book_.load(filePath); }
+
+    // 开局库命中率（0.0~1.0）。
+    double openingBookHitRate() const { return opening_book_.hitRate(); }
+
 private:
     // 生成候选落子点
     std::vector<CandidateMove> generateCandidates(GameBoard& board, Piece piece);
@@ -83,6 +90,7 @@ private:
 
     ZobristHash zobrist_;          // Zobrist 哈希
     TranspositionTable tt_;        // 置换表
+    OpeningBook opening_book_;     // 开局库
     std::mt19937 rng_;             // 随机数生成器（用于错误率模拟）
 };
 

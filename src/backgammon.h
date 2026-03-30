@@ -26,6 +26,7 @@ class QPushButton;
 class AiWorker;
 class QThread;
 class SoundManager;
+class AchievementManager;
 
 class Backgammon : public QMainWindow
 {

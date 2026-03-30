@@ -34,6 +34,14 @@ Position AIEngine::calculateBestMove(GameBoard& board, Piece aiPiece) {
         return Position(7, 7);
     }
 
+    // 开局库查询：开局阶段优先查表
+    if (opening_book_.isLoaded()) {
+        Position bookMove = opening_book_.lookup(board, aiPiece);
+        if (bookMove.isValid()) {
+            return bookMove;
+        }
+    }
+
     // 错误率模拟：按配置概率走随机候选步（简单难度人格化）
     if (error_rate_ > 0.0) {
         std::uniform_real_distribution<double> dist(0.0, 1.0);

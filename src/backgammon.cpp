@@ -23,6 +23,7 @@
 #include <QSettings>
 #include <QShowEvent>
 #include <QThread>
+#include <QCoreApplication>
 #include <QFileDialog>
 #include "sgf_serializer.h"
 #include <QVBoxLayout>
@@ -539,6 +540,11 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	// 同步界面上的难度下拉框显示。
 	const QString depthText = QString::number(savedDepth) + QString::fromUtf8(" \u6B65");
 	ui.difficultyComboBox->setCurrentText(depthText);
+
+	// 加载开局库（与可执行文件同目录下的 resources/opening_book.json）。
+	const QString bookPath = QCoreApplication::applicationDirPath() + "/resources/opening_book.json";
+	const int bookEntries = m_aiEngine.loadOpeningBook(bookPath);
+	Q_UNUSED(bookEntries);
 }
 
 Backgammon::~Backgammon()
