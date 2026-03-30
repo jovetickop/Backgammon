@@ -10,6 +10,7 @@
 #include "ui_backgammon.h"
 #include "types.h"
 #include "domain/services/win_detector.h"
+#include "sgf_serializer.h"
 #include "domain/services/board_evaluator.h"
 #include "domain/services/ai_engine.h"
 
@@ -24,6 +25,7 @@ class WinRateChart;
 class QPushButton;
 class AiWorker;
 class QThread;
+class SoundManager;
 
 class Backgammon : public QMainWindow
 {
@@ -56,6 +58,12 @@ public slots:
 	void slotHintBtnClicked(bool checked);
 	// 接收 AiWorker 计算完成的落点
 	void slotAiMoveReady(int row, int col);
+	// 切换音效开关
+	void slotSoundToggleClicked(bool checked);
+	// 导出当前对局为 SGF 文件
+	void slotExportSgfClicked();
+	// 从 SGF 文件导入并回放棋谱
+	void slotImportSgfClicked();
 
 private:
 	void RecordGameResult(ePiece winner);
@@ -131,6 +139,10 @@ private:
 	// 悔棋计数：当前局已悔棋次数 / 每局最大悔棋次数。
 	int m_nUndoCount;
 	int m_nMaxUndoCount;
+
+	// 音效管理器及音效开关按钮
+	SoundManager *m_pSoundManager;
+	QPushButton *m_pSoundToggleBtn;
 };
 
 #endif // BACKGAMMON_H

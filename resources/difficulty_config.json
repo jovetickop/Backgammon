@@ -1,0 +1,44 @@
+{
+  "difficulties": [
+    {
+      "id": 1,
+      "name": "简单",
+      "search_depth": 2,
+      "time_limit_ms": 500,
+      "error_rate": 0.30,
+      "attack_weight": 0.5,
+      "defend_weight": 0.5,
+      "description": "30% 概率走随机步，适合新手"
+    },
+    {
+      "id": 2,
+      "name": "普通",
+      "search_depth": 4,
+      "time_limit_ms": 1000,
+      "error_rate": 0.10,
+      "attack_weight": 0.6,
+      "defend_weight": 0.6,
+      "description": "10% 概率走随机步，平衡进攻与防守"
+    },
+    {
+      "id": 3,
+      "name": "困难",
+      "search_depth": 6,
+      "time_limit_ms": 2000,
+      "error_rate": 0.0,
+      "attack_weight": 0.8,
+      "defend_weight": 0.7,
+      "description": "无失误，最大深度搜索+置换表全开"
+    },
+    {
+      "id": 4,
+      "name": "专家",
+      "search_depth": 8,
+      "time_limit_ms": 3000,
+      "error_rate": 0.0,
+      "attack_weight": 1.0,
+      "defend_weight": 1.0,
+      "description": "最强，迭代加深至深度8"
+    }
+  ]
+}

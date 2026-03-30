@@ -3,11 +3,13 @@
 #include "../aggregates/game_board.h"
 #include "../values/piece.h"
 #include "board_evaluator.h"
+#include "difficulty_config.h"
 #include "transposition_table.h"
 #include "win_detector.h"
 #include <atomic>
 #include <chrono>
 #include <optional>
+#include <random>
 
 // AI引擎领域服务：极大极小搜索 + Alpha-Beta剪枝 + 迭代加深 + 时间控制 + 置换表。
 namespace game_core {
@@ -36,6 +38,9 @@ public:
 
     // 检查AI是否已经获胜
     bool checkWin(const GameBoard& board, Piece piece);
+
+    // 设置难度配置（影响错误率、搜索深度、时间限制）
+    void setDifficultyProfile(const DifficultyProfile& profile);
 
     // 清空置换表（新局开始时调用）
     void clearTranspositionTable() { tt_.clear(); }
@@ -67,6 +72,7 @@ private:
 
     int search_depth_;             // 最大搜索深度上限
     int time_limit_ms_;            // 时间限制（毫秒），0 表示不限时
+    double error_rate_;            // 错误率：走随机步的概率 [0.0, 1.0]
     bool timed_out_;               // 是否已超时标志
 
     std::chrono::steady_clock::time_point search_start_; // 搜索开始时间
@@ -77,6 +83,7 @@ private:
 
     ZobristHash zobrist_;          // Zobrist 哈希
     TranspositionTable tt_;        // 置换表
+    std::mt19937 rng_;             // 随机数生成器（用于错误率模拟）
 };
 
 } // namespace game_core

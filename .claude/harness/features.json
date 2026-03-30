@@ -279,7 +279,7 @@
     \"test_command\": \"cmake --build build && ctest --test-dir build --output-on-failure\",
     \"depends_on\": [\"T004\"],
     \"priority\": 4,
-    \"status\": \"pending\"
+    \"status\": \"passed\"
   },
   {
     \"id\": \"T020\",

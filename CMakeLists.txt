@@ -33,6 +33,7 @@ set(BACKGAMMON_SOURCES
     src/gamebridge.cpp
     src/AiWorker.cpp
     src/playerstatsstore.cpp
+    src/sgf_serializer.cpp
     # DDD 领域层
     src/domain/aggregates/game_board.cpp
     src/domain/services/win_detector.cpp

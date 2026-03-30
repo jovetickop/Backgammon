@@ -7,9 +7,18 @@ namespace game_core {
 AIEngine::AIEngine()
     : search_depth_(6)       // 迭代加深最大深度上限
     , time_limit_ms_(2000)   // 默认 2 秒时间限制
+    , error_rate_(0.0)       // 默认无错误
     , timed_out_(false)
     , best_move_(Position::Invalid())
+    , rng_(std::random_device{}())
 {
+}
+
+void AIEngine::setDifficultyProfile(const DifficultyProfile& profile) {
+    // 根据难度配置更新搜索参数
+    search_depth_  = profile.search_depth;
+    time_limit_ms_ = profile.time_limit_ms;
+    error_rate_    = profile.error_rate;
 }
 
 bool AIEngine::isTimeout() const {
@@ -24,6 +33,22 @@ Position AIEngine::calculateBestMove(GameBoard& board, Piece aiPiece) {
     if (board.isEmpty()) {
         return Position(7, 7);
     }
+
+    // 错误率模拟：按配置概率走随机候选步（简单难度人格化）
+    if (error_rate_ > 0.0) {
+        std::uniform_real_distribution<double> dist(0.0, 1.0);
+        if (dist(rng_) < error_rate_) {
+            auto candidates = evaluator_.generateCandidates(board, aiPiece);
+            if (!candidates.empty()) {
+                // 从候选步的后半段随机选一步（非最优），模拟失误
+                int skip = static_cast<int>(candidates.size() / 2);
+                std::uniform_int_distribution<int> idist(skip,
+                    static_cast<int>(candidates.size()) - 1);
+                return candidates[idist(rng_)].position;
+            }
+        }
+    }
+
     // 记录搜索开始时间
     search_start_ = std::chrono::steady_clock::now();
     timed_out_ = false;

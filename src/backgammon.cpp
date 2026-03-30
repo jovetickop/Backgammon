@@ -23,6 +23,8 @@
 #include <QSettings>
 #include <QShowEvent>
 #include <QThread>
+#include <QFileDialog>
+#include "sgf_serializer.h"
 #include <QVBoxLayout>
 #include <QTransform>
 #include <cmath>
@@ -31,6 +33,7 @@
 #include "AiWorker.h"
 #include "historydialog.h"
 #include "replaydialog.h"
+#include "soundmanager.h"
 #include "domain/aggregates/game_board.h"
 #include "resultdialog.h"
 #include "winratechart.h"
@@ -274,6 +277,8 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_pAiThread(nullptr)
 	, m_pAiWorker(nullptr)
 	, m_bAiThinking(false)
+	, m_pSoundManager(nullptr)
+	, m_pSoundToggleBtn(nullptr)
 {
 	ui.setupUi(this);
 
@@ -458,6 +463,19 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 		leftLayout->addWidget(m_pHintBtn, 0, 5);
 	connect(m_pHintBtn, &QPushButton::toggled, this, &Backgammon::slotHintBtnClicked);
 
+	// 创建音效管理器
+	m_pSoundManager = new SoundManager(this);
+
+	// 创建「音效」开关按钮并插入到左侧面板按钮行 col6
+	m_pSoundToggleBtn = new QPushButton(QString::fromUtf8("\u97F3\u6548"), ui.left_widget);
+	m_pSoundToggleBtn->setObjectName("soundToggleBtn");
+	m_pSoundToggleBtn->setCheckable(true);
+	m_pSoundToggleBtn->setChecked(m_pSoundManager->isEnabled());
+	m_pSoundToggleBtn->setMinimumHeight(68);
+	if (leftLayout)
+		leftLayout->addWidget(m_pSoundToggleBtn, 0, 6);
+	connect(m_pSoundToggleBtn, &QPushButton::toggled, this, &Backgammon::slotSoundToggleClicked);
+
 	// 棋盘背景：浅木纹径向渐变，中心偏亮、边缘微暗，保持明亮清爽感。
 	QRadialGradient boardBg(kBoardCenter * kGridSize + 180, kBoardCenter * kGridSize - 120, 600);
 	boardBg.setColorAt(0.0, QColor(245, 222, 179));
@@ -500,6 +518,8 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	connect(ui.difficultyComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(slotDifficultyChanged(int)));
 	connect(ui.difficultyComboBox, SIGNAL(currentTextChanged(QString)), this, SLOT(slotDifficultyTextChanged(QString)));
 	connect(ui.aiInfoButton, &QPushButton::clicked, this, [this]() { ShowAiLogicDialog(this, m_nDeep); });
+	connect(ui.exportSgfButton, &QPushButton::clicked, this, &Backgammon::slotExportSgfClicked);
+	connect(ui.importSgfButton, &QPushButton::clicked, this, &Backgammon::slotImportSgfClicked);
 	ui.startButton->setChecked(false);
 
 	// 初始化 AI 异步计算线程
@@ -1350,4 +1370,75 @@ void Backgammon::ComputeAndShowHint()
 {
 	// 提示功能暂未实现，预留接口。
 	ClearHintOverlay();
+}
+
+void Backgammon::slotSoundToggleClicked(bool /*checked*/)
+{
+	// 音效开关功能暂未实现，预留接口。
+}
+
+void Backgammon::slotExportSgfClicked()
+{
+	// 若当前无对局记录则提示并返回。
+	if (m_currentGameMoves.isEmpty()) {
+		QMessageBox::information(this, tr("导出 SGF"), tr("当前没有可导出的对局记录。"));
+		return;
+	}
+
+	// 弹出文件保存对话框
+	QString filePath = QFileDialog::getSaveFileName(
+		this,
+		tr("导出 SGF 棋谱"),
+		QString(),
+		tr("SGF 文件 (*.sgf);;所有文件 (*)"));
+	if (filePath.isEmpty())
+		return;
+
+	// 构建 GameRecord 用于导出
+	GameRecord record;
+	record.moves = m_currentGameMoves;
+	record.moveCount = m_currentGameMoves.size();
+	record.playerStarted = m_bPlayerStarts;
+	record.finishedAt = QDateTime::currentDateTime().toString(Qt::ISODate);
+
+	if (!SgfSerializer::saveToFile(filePath, record, m_sCurrentUser)) {
+		QMessageBox::warning(this, tr("导出失败"), tr("无法写入文件：%1").arg(filePath));
+		return;
+	}
+	QMessageBox::information(this, tr("导出成功"), tr("棋谱已保存至：%1").arg(filePath));
+}
+
+void Backgammon::slotImportSgfClicked()
+{
+	// 弹出文件选择对话框
+	QString filePath = QFileDialog::getOpenFileName(
+		this,
+		tr("导入 SGF 棋谱"),
+		QString(),
+		tr("SGF 文件 (*.sgf);;所有文件 (*)"));
+	if (filePath.isEmpty())
+		return;
+
+	bool ok = false;
+	GameRecord record = SgfSerializer::loadFromFile(filePath, ok);
+	if (!ok || record.moves.isEmpty()) {
+		QMessageBox::warning(this, tr("导入失败"), tr("无法解析 SGF 文件，请确认文件格式正确。"));
+		return;
+	}
+
+	// 将导入的棋谱加载到当前游戏状态供回放
+	CleanBoard();
+	m_currentGameMoves = record.moves;
+	m_bPlayerStarts = record.playerStarted;
+
+	// 在棋盘上重现所有落子
+	for (const MoveRecord &mv : m_currentGameMoves) {
+		if (mv.row < 0 || mv.row >= 15 || mv.col < 0 || mv.col >= 15) continue;
+		m_arrBoard[mv.row][mv.col] = mv.piece;
+	}
+	UpdateBoardView();
+
+	QMessageBox::information(this,
+		tr("导入成功"),
+		tr("已加载 %1 步棋谱。").arg(record.moveCount));
 }
