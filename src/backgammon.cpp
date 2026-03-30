@@ -34,6 +34,7 @@
 #include "achievementdialog.h"
 #include "AiWorker.h"
 #include "historydialog.h"
+#include "networkdialog.h"
 #include "replaydialog.h"
 #include "soundmanager.h"
 #include "domain/aggregates/game_board.h"
@@ -284,6 +285,10 @@ Backgammon::Backgammon(PlayerStatsStore *statsStore, const PlayerRecord &playerR
 	, m_pAchievementManager(nullptr)
 	, m_nConsecutiveWins(0)
 	, m_bOpponentHadOpenFour(false)
+	, m_pGameServer(nullptr)
+	, m_pGameClient(nullptr)
+	, m_bNetworkMode(false)
+	, m_eNetworkPiece(BLACK)
 {
 	ui.setupUi(this);
 
@@ -859,6 +864,35 @@ void Backgammon::mousePressEvent(QMouseEvent * event)
 	if (m_arrBoard[row][col] != NONE)
 	{
 		QMessageBox::warning(this, QString::fromUtf8("\u8B66\u544A"), QString::fromUtf8("\u65E0\u6CD5\u843D\u5B50\uFF01"));
+		return;
+	}
+
+	// 网络对战模式：只允许本方落子，落子后发送给对方。
+	if (m_bNetworkMode) {
+		const bool isMyTurn = (m_currentGameMoves.size() % 2 == 0)
+			? (m_eNetworkPiece == BLACK)
+			: (m_eNetworkPiece == WHITE);
+		if (!isMyTurn)
+			return;
+		if (m_eNetworkPiece == BLACK)
+			PlacePlayerMove(row, col);
+		else
+			PlaceAiMove(row, col);
+		// 发送落子给对方。
+		if (m_pGameServer)
+			m_pGameServer->sendMove(row, col);
+		else if (m_pGameClient)
+			m_pGameClient->sendMove(row, col);
+		UpdateWinRateEstimate(m_eNetworkPiece == BLACK ? WHITE : BLACK);
+		const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+		const game_core::Piece myPiece = (m_eNetworkPiece == BLACK)
+			? game_core::Piece::Black : game_core::Piece::White;
+		if (m_winDetector.checkWin(gboard, myPiece)) {
+			RecordGameResult(m_eNetworkPiece);
+			ResultDialog(this, true, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
+			FinishRoundCleanup();
+			m_bNetworkMode = false;
+		}
 		return;
 	}
 
@@ -1566,6 +1600,86 @@ void Backgammon::slotExportSgfClicked()
 		return;
 	}
 	QMessageBox::information(this, tr("导出成功"), tr("棋谱已保存至：%1").arg(filePath));
+}
+
+void Backgammon::slotNetworkBtnClicked()
+{
+	// 弹出局域网对战对话框，让用户选择主机或客户端角色。
+	NetworkDialog dlg(this);
+	if (dlg.exec() != QDialog::Accepted)
+		return;
+
+	// 清空当前对局并进入网络对战模式。
+	CleanBoard();
+	m_bNetworkMode = true;
+
+	if (dlg.isHost()) {
+		// 主机执黑先手。
+		m_eNetworkPiece = BLACK;
+		m_pGameServer = dlg.takeServer();
+		m_pGameServer->setParent(this);
+		connect(m_pGameServer, &GameServer::moveReceived,
+			this, &Backgammon::slotNetworkMoveReceived);
+		connect(m_pGameServer, &GameServer::clientDisconnected,
+			this, &Backgammon::slotNetworkDisconnected);
+	} else {
+		// 客户端执白后手。
+		m_eNetworkPiece = WHITE;
+		m_pGameClient = dlg.takeClient();
+		m_pGameClient->setParent(this);
+		connect(m_pGameClient, &GameClient::moveReceived,
+			this, &Backgammon::slotNetworkMoveReceived);
+		connect(m_pGameClient, &GameClient::disconnected,
+			this, &Backgammon::slotNetworkDisconnected);
+	}
+
+	// 启动对局（禁用 AI 相关控件，禁用先后手选择）。
+	m_bStarted = true;
+	m_bPvPMode = false;
+	ui.startButton->setChecked(true);
+	ui.startButton->setText(QString::fromUtf8("\u6E05\u9664"));
+	ui.starterComboBox->setEnabled(false);
+	ui.difficultyComboBox->setEnabled(false);
+	ResetWinRateEstimate();
+}
+
+void Backgammon::slotNetworkMoveReceived(int row, int col)
+{
+	// 对方落子：主机收到客户端白棋，客户端收到主机黑棋。
+	if (!m_bStarted || row < 0 || row >= 15 || col < 0 || col >= 15)
+		return;
+	if (m_arrBoard[row][col] != NONE)
+		return;
+
+	const ePiece opponentPiece = (m_eNetworkPiece == BLACK) ? WHITE : BLACK;
+	if (opponentPiece == WHITE)
+		PlaceAiMove(row, col);   // 白棋复用 AI 落子绘制
+	else
+		PlacePlayerMove(row, col);
+
+	UpdateWinRateEstimate(m_eNetworkPiece);
+
+	const game_core::GameBoard gboard = ToGameBoard(m_arrBoard);
+	const game_core::Piece oppGPiece = (opponentPiece == BLACK)
+		? game_core::Piece::Black : game_core::Piece::White;
+	if (m_winDetector.checkWin(gboard, oppGPiece)) {
+		RecordGameResult(opponentPiece);
+		ResultDialog(this, false, m_nMoveCount, m_nFinishedGames, m_nPlayerWins, m_nAiWins).exec();
+		FinishRoundCleanup();
+		m_bNetworkMode = false;
+	}
+}
+
+void Backgammon::slotNetworkDisconnected()
+{
+	// 对方断线，结束网络对战模式。
+	if (m_bNetworkMode) {
+		m_bNetworkMode = false;
+		QMessageBox::information(this,
+			QString::fromUtf8("\u7F51\u7EDC\u5BF9\u6218"),
+			QString::fromUtf8("\u5BF9\u65B9\u5DF2\u65AD\u7EBF\uFF0C\u5BF9\u5C40\u7ED3\u675F\u3002"));
+		FinishRoundCleanup();
+	}
 }
 
 void Backgammon::slotImportSgfClicked()
